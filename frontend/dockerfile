@@ -1,0 +1,11 @@
+FROM node:18-alpine
+
+WORKDIR /usr/src/app
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+# 宣告容器將會監聽 5173 埠，這是 Vite 開發伺服器的預設埠號。
+EXPOSE 5173
+
+CMD ["npm", "run", "dev"]

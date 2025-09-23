@@ -1,0 +1,55 @@
+services:
+  backend:
+    build: ./backend
+    container_name: chat_backend
+    ports:
+      - "3000:3000" 
+    volumes:
+      - ./backend:/usr/src/app
+    depends_on:
+      - mysql
+      - redis
+      - rabbitmq
+  frontend:
+    build: ./frontend
+    container_name: chat_frontend
+    volumes:
+      - ./frontend:/usr/src/app
+    ports:
+      - "5173:5173" 
+
+  mysql:
+    image: mysql:8
+    container_name: chat_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  redis:
+    image: redis:7
+    container_name: chat_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--save", "60", "1"]
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: chat_rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672" # management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+
+volumes:
+  mysql_data:
