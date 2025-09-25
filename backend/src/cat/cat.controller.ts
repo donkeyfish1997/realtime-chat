@@ -5,18 +5,28 @@ import {
   // HttpCode,
   HttpStatus,
   Param,
+  ParseIntPipe,
   Post,
   Query,
   Redirect,
   Req,
   Res,
+  UseGuards,
+  // UsePipes,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import type { HttpRedirectResponse } from '@nestjs/common';
-import { CreateCatDto } from './dto/create-cat.dto';
+import { createCatSchema } from './dto/create-cat.dto';
+import type { CreateCatDto } from './dto/create-cat.dto';
+import { CatService } from './cat.service';
+import { ZoeValidation } from 'src/common/pipes/zoeValidation.pipe';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/filters/roles.decorator';
 
+@UseGuards(RolesGuard)
 @Controller('cat')
 export class CatController {
+  constructor(private catService: CatService) {}
   @Get('getRequest')
   //   @HttpCode(222)
   //@Header('Cache-Control', 'no-store')
@@ -32,18 +42,28 @@ export class CatController {
     return reqInfo;
   }
   @Get()
-  findAll(@Query('age') age: number, @Query('breed') breed: string) {
-    return `This action returns all cats filtered by age: ${age}-${typeof age} and breed: ${breed}-${typeof breed}`;
+  findAll(
+    @Query('age', new ParseIntPipe({ optional: true })) age?: number,
+    @Query('breed') breed?: string,
+  ) {
+    return this.catService.findAll({ age, breed });
   }
-  @Get(':id/:id2')
-  findOne(@Param() params: { id: string; id2: string }): string {
-    //@Param('id') id: string
-    return `This action returns a #${params.id} #${params.id2} cat`;
+  @Get(':id')
+  findOne(
+    @Param(
+      'id',
+      new ParseIntPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),
+    )
+    id: number,
+  ): string {
+    return `This action returns a id ${id}`;
   }
-  @Post('createCat')
-  //@Get(), @Post(), @Put(), @Delete(), @Patch(), @Options(), and @Head(). In addition, @All() defines an endpoint that handles all of them.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  create(@Body() createCatDto: CreateCatDto): string {
+  @Post()
+  @Roles(['admin'])
+  create(
+    @Body(new ZoeValidation(createCatSchema)) createCatDto: CreateCatDto,
+  ): string {
+    this.catService.create(createCatDto);
     return 'This action adds a new cat';
   }
   @Redirect('http://localhost:3000', 302)
