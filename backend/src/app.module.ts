@@ -9,9 +9,11 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { PostsModule } from './posts/posts.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
-  imports: [UsersModule, CatModule, AuthModule],
+  imports: [UsersModule, CatModule, AuthModule, PostsModule, PrismaModule],
   controllers: [AppController],
   providers: [
     Logger,
