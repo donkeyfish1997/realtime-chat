@@ -11,7 +11,7 @@ import {
   Redirect,
   Req,
   Res,
-  UseGuards,
+
   // UsePipes,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
@@ -20,10 +20,9 @@ import { createCatSchema } from './dto/create-cat.dto';
 import type { CreateCatDto } from './dto/create-cat.dto';
 import { CatService } from './cat.service';
 import { ZoeValidation } from 'src/common/pipes/zoeValidation.pipe';
-import { RolesGuard } from 'src/common/guards/roles.guard';
-import { Roles } from 'src/common/filters/roles.decorator';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
-@UseGuards(RolesGuard)
+@Roles(['admin'])
 @Controller('cat')
 export class CatController {
   constructor(private catService: CatService) {}
