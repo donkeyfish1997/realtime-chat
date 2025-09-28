@@ -1,36 +1,11 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Request,
-  UnauthorizedException,
-} from '@nestjs/common';
-import type { Request as ExpressRequest } from 'express';
+import { Body, Controller, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { Public } from 'src/common/decorators/public.decorator';
+import { UserService } from 'src/user/user.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
-  @Public()
-  @Post('login')
-  login(@Request() req: ExpressRequest) {
-    if (req.user) {
-      return this.authService.login(req.user as any);
-    }
-
-    throw new UnauthorizedException();
-  }
-  // @UseGuards(LocalAuthGuard)
-  // @Get('logout')
-  // logout(@Request() req: ExpressRequest) {
-  // return req.logout();
-  // }
-
-  //test
-  @Get('test')
-  getProfile(@Request() req: ExpressRequest) {
-    return req.user;
-  }
+  @Post('register')
+  register(@Body() body: object) {}
 }

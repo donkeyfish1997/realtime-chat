@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  // output   = "../generated/prisma"
 }
 
 datasource db {
@@ -15,18 +14,91 @@ datasource db {
 }
 
 model User {
-  id    Int     @default(autoincrement()) @id
-  name  String  @unique
-  email String  @unique
-  password String
-  posts Post[]
+  id            String    @id @default(cuid())
+  name          String?
+  email         String   @unique // 用於 Email/密碼登入
+  emailVerified DateTime? // 用於驗證電子郵件
+  image         String?   // 頭像 URL
+  
+  accounts      Account[] // 關聯：一個 User 可以有多個 Account (多個登入方式)
+  sessions      Session[] // 關聯：一個 User 可以有多個 Session (多個登入裝置)
+  credential    Credential? 
+  verificationToken  VerificationToken[]
+
+
+  @@map("users") // 習慣將表名設定為複數
 }
 
-model Post {
-  id        Int      @default(autoincrement()) @id
-  title     String
-  content   String?
-  published Boolean? @default(false)
-  author    User?    @relation(fields: [authorId], references: [id])
-  authorId  Int?
+// =======================================================
+// 2. Account 模型：代表一個登入憑證或連線，用於身份驗證
+// =======================================================
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  // 外鍵：指向所屬的 User
+  type              String  // 登入類型: "oauth" (第三方) 或 "credentials" (Email/密碼)
+  provider          String  // 服務提供者 (如 "google", "github", "email")
+  providerAccountId String  // 服務提供者的使用者 ID
+  
+  // OAuth 相關的 Token
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  
+  // 關聯：多對一關係
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 確保 provider 和 providerAccountId 的組合是唯一的
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
 }
+
+// =======================================================
+// 3. Session 模型：代表一個已登入的狀態
+// =======================================================
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique // 用於識別此會話的 Token
+  userId       String   // 外鍵：指向正在使用此會話的 User
+  expires      DateTime // 會話過期時間
+  
+  // 關聯：多對一關係
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Credential {
+  id             String @id @default(cuid())
+  email          String @unique
+  passwordHash   String
+  userId         String @unique
+
+  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credentials")
+}
+
+
+enum VerificationTokenType {
+  EMAIL_VERIFY   // 註冊時的 email 驗證
+  PASSWORD_RESET // 忘記密碼 / 重設密碼
+  CHANGE_EMAIL   // 修改 email 驗證
+}
+// 核心模型：儲存驗證 Token
+model VerificationToken {
+  id          String    @id @default(cuid())
+  identifier  String   //識別待驗證的對象： email,
+  tokenHash   String    @unique
+  expires     DateTime  
+  type        VerificationTokenType
+  userId      String
+  user        User  @relation(fields: [userId],references:[id],onDelete: Cascade)
+
+  @@unique([identifier, tokenHash]) // 確保同一 identifier 不會有重複的有效 token
+  @@map("verification_tokens")
+}
+
