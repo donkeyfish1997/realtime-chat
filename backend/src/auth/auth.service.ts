@@ -1,29 +1,51 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-
+// chat_backend   | token: 30782f125f9a74c99ae0845baea50f0f50ad04c927916357a1670e00c7edf0c0
+// chat_backend   | tokenHash: ebb3745f5b6471d7ae076c3be68d3308f8e777e3a3fb71af62d0ec0c7f520bea
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserService } from 'src/user/user.service';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { Prisma, PrismaClient, VerificationTokenType } from '@prisma/client';
+import {
+  Prisma,
+  PrismaClient,
+  VerificationTokenType,
+  User,
+} from '@prisma/client';
+import { JwtService } from '@nestjs/jwt';
+import {
+  CheckTokenValidDto,
+  ConfirmChangeEmailDto,
+  RegisterDto,
+  ResetPasswordDto,
+  VerifyEmailDto,
+} from './dto/authController.dto';
+
 type TokenType =
   (typeof VerificationTokenType)[keyof typeof VerificationTokenType];
-
+export type JWTpayload = Omit<User, 'id'> & { sub: string };
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userService: UserService,
     private readonly prismaService: PrismaService,
+    private jwtService: JwtService,
   ) {}
-  async register(body: { email: string; password: string }) {
-    const user = await this.userService.createUser(body);
-    const passwordHash = await this.getPasswordHash(body.password);
+  async register(info: RegisterDto) {
+    const existingUser = await this.userService.user({ email: info.email });
+    if (existingUser) throw new ConflictException('email is been registered');
+    const user = await this.userService.createUser(info);
+    const passwordHash = await this.getPasswordHash(info.password);
     const token = this.createToken();
     const tokenHash = this.getTokenHash(token);
     await this.prismaService.$transaction(async (tx) => {
       await Promise.all([
         this.createCredential(
           {
-            email: body.email,
+            email: info.email,
             passwordHash,
             userId: user.id,
           },
@@ -31,7 +53,7 @@ export class AuthService {
         ),
         this.createValidationTokenAndExpireOlds(
           {
-            identifier: body.email,
+            identifier: info.email,
             tokenHash: tokenHash,
             type: 'EMAIL_VERIFY',
             userId: user.id,
@@ -45,20 +67,18 @@ export class AuthService {
     //sendEmail('token')....
     //sendEmail('token')....
     //sendEmail('token')....
-    return { user, token };
+    return { user };
   }
-  async verifyEmail(body: { token: string; identifier: string }) {
-    const tokenHash = this.getTokenHash(body.token);
+  async verifyEmail(info: VerifyEmailDto) {
+    const tokenHash = this.getTokenHash(info.token);
     const verificationToken = await this.getAndCheckVerifiedVerificationToken(
       {
-        identifier: body.identifier,
+        identifier: info.identifier,
         tokenHash,
         type: 'EMAIL_VERIFY',
       },
       this.prismaService,
     );
-    if (verificationToken.user.email !== body.identifier)
-      throw new UnauthorizedException('verify email token error');
     await this.prismaService.$transaction(async (tx) => {
       await Promise.all([
         tx.user.update({
@@ -72,6 +92,22 @@ export class AuthService {
         ),
       ]);
     });
+  }
+  //only use in local.strategy, automatic validate which has
+  async validateUser(email: string, password: string): Promise<User | null> {
+    const credential = await this.prismaService.credential.findFirst({
+      where: { email },
+      include: { user: true },
+    });
+    if (!credential) return null;
+    const isMatch = await bcrypt.compare(password, credential.passwordHash);
+    if (isMatch) return credential.user;
+    return null;
+  }
+  login(user: User): { access_token: string } {
+    return {
+      access_token: this.jwtService.sign(user),
+    };
   }
   async requestPasswordReset(email: string) {
     const user = await this.userService.user({ email });
@@ -96,15 +132,11 @@ export class AuthService {
     //send mail(token)
     //send mail(token)
   }
-  async resetPassword(body: {
-    identifier: string;
-    token: string;
-    newPassword: string;
-  }) {
-    const tokenHash = this.getTokenHash(body.token);
+  async resetPassword(info: ResetPasswordDto) {
+    const tokenHash = this.getTokenHash(info.token);
     const verificationToken = await this.getAndCheckVerifiedVerificationToken(
       {
-        identifier: body.identifier,
+        identifier: info.identifier,
         tokenHash,
         type: 'PASSWORD_RESET',
       },
@@ -112,7 +144,7 @@ export class AuthService {
     );
 
     const user = verificationToken.user;
-    const newPasswordHash = await this.getPasswordHash(body.newPassword);
+    const newPasswordHash = await this.getPasswordHash(info.newPassword);
     const credential = await this.prismaService.credential.findFirst({
       where: { email: user.email, userId: user.id },
     });
@@ -162,7 +194,8 @@ export class AuthService {
     //send mail
     //send mail
   }
-  async confirmChangeEmail(newEmail: string, token: string) {
+  async confirmChangeEmail(info: ConfirmChangeEmailDto) {
+    const { newEmail, token } = info;
     const tokenHash = this.getTokenHash(token);
     const verificationToken = await this.getAndCheckVerifiedVerificationToken(
       {
@@ -211,14 +244,10 @@ export class AuthService {
       );
     });
   }
-  async checkTokenValid(body: {
-    identifier: string;
-    token: string;
-    type: VerificationTokenType;
-  }) {
-    const tokenHash = this.getTokenHash(body.token);
+  async checkTokenValid(info: CheckTokenValidDto) {
+    const tokenHash = this.getTokenHash(info.token);
     await this.getAndCheckVerifiedVerificationToken(
-      { ...body, tokenHash },
+      { ...info, tokenHash },
       this.prismaService,
     );
     return true;
@@ -227,7 +256,9 @@ export class AuthService {
   // private
   //
   private createToken(): string {
-    return crypto.randomBytes(32).toString('hex'); // 64字元隨機 token
+    const token = crypto.randomBytes(32).toString('hex'); // 64字元隨機 token
+    console.log('token: ', token);
+    return token;
   }
   private async getPasswordHash(password: string): Promise<string> {
     const salt = await bcrypt.genSalt(10);
@@ -249,12 +280,12 @@ export class AuthService {
   ) {
     if (tx instanceof PrismaClient) {
       await tx.$transaction(async (tx) => {
-        await this.createValidationToken(info, tx);
         await this.setValidationTokensExpire(info.userId, info.type, tx);
+        await this.createValidationToken(info, tx);
       });
     } else {
-      await this.createValidationToken(info, tx);
       await this.setValidationTokensExpire(info.userId, info.type, tx);
+      await this.createValidationToken(info, tx);
     }
   }
   private createValidationToken(
@@ -266,13 +297,14 @@ export class AuthService {
     },
     tx: Prisma.TransactionClient,
   ) {
+    const expires = new Date(Date.now() + 3600000);
     return tx.verificationToken.create({
       data: {
         userId: info.userId,
         identifier: info.identifier,
         tokenHash: info.tokenHash,
         type: info.type,
-        expires: new Date(Date.now() + 3600000), // 例如：一小時後過期
+        expires: expires,
       },
     });
   }
@@ -317,6 +349,7 @@ export class AuthService {
       },
       include: { user: true },
     });
+
     if (!verificationToken)
       throw new UnauthorizedException('verify email token error');
     return verificationToken;

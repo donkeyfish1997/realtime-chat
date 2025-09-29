@@ -34,8 +34,9 @@ export class UserService {
   async createUser(
     data: Omit<Prisma.UserCreateInput, 'emailVerified'>,
   ): Promise<User> {
+    const { name, email, image } = data;
     return this.prisma.user.create({
-      data: { ...data, emailVerified: null },
+      data: { name, email, image },
     });
   }
 
