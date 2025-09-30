@@ -1,5 +1,3 @@
-// chat_backend   | token: 30782f125f9a74c99ae0845baea50f0f50ad04c927916357a1670e00c7edf0c0
-// chat_backend   | tokenHash: ebb3745f5b6471d7ae076c3be68d3308f8e777e3a3fb71af62d0ec0c7f520bea
 import {
   ConflictException,
   Injectable,
@@ -8,7 +6,7 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserService } from 'src/user/user.service';
 import bcrypt from 'bcrypt';
-import crypto from 'crypto';
+// import crypto from 'crypto';
 import {
   Prisma,
   PrismaClient,
@@ -23,6 +21,9 @@ import {
   ResetPasswordDto,
   VerifyEmailDto,
 } from './dto/authController.dto';
+import { createTOkenAndHash, getTokenHash } from './utilities/tokenAndHash';
+import { Request, Response } from 'express';
+import { RefreshTokenService } from './refresh-token/refresh-token.service';
 
 type TokenType =
   (typeof VerificationTokenType)[keyof typeof VerificationTokenType];
@@ -32,15 +33,15 @@ export class AuthService {
   constructor(
     private readonly userService: UserService,
     private readonly prismaService: PrismaService,
+    private readonly refreshTokenService: RefreshTokenService,
     private jwtService: JwtService,
   ) {}
-  async register(info: RegisterDto) {
+  async register(info: RegisterDto): Promise<User> {
     const existingUser = await this.userService.user({ email: info.email });
     if (existingUser) throw new ConflictException('email is been registered');
     const user = await this.userService.createUser(info);
     const passwordHash = await this.getPasswordHash(info.password);
-    const token = this.createToken();
-    const tokenHash = this.getTokenHash(token);
+    const { token, tokenHash } = createTOkenAndHash();
     await this.prismaService.$transaction(async (tx) => {
       await Promise.all([
         this.createCredential(
@@ -67,10 +68,10 @@ export class AuthService {
     //sendEmail('token')....
     //sendEmail('token')....
     //sendEmail('token')....
-    return { user };
+    return user;
   }
   async verifyEmail(info: VerifyEmailDto) {
-    const tokenHash = this.getTokenHash(info.token);
+    const tokenHash = getTokenHash(info.token);
     const verificationToken = await this.getAndCheckVerifiedVerificationToken(
       {
         identifier: info.identifier,
@@ -104,7 +105,21 @@ export class AuthService {
     if (isMatch) return credential.user;
     return null;
   }
-  login(user: User): { access_token: string } {
+  // this function already authentication info through local passport stratage
+  async login(user: User, res: Response): Promise<{ access_token: string }> {
+    await this.refreshTokenService.create(user.id, res);
+    return {
+      access_token: this.jwtService.sign(user),
+    };
+  }
+  async logout(user: User, res: Response) {
+    await this.refreshTokenService.create(user.id, res);
+  }
+  async getAccessToken(req: Request) {
+    const session = await this.refreshTokenService.validate(req);
+    const user = await this.prismaService.user.findFirstOrThrow({
+      where: { id: session.userId },
+    });
     return {
       access_token: this.jwtService.sign(user),
     };
@@ -112,8 +127,7 @@ export class AuthService {
   async requestPasswordReset(email: string) {
     const user = await this.userService.user({ email });
     if (!user) throw new UnauthorizedException('email not registered.');
-    const token = this.createToken();
-    const tokenHash = this.getTokenHash(token);
+    const { token, tokenHash } = createTOkenAndHash();
     await this.prismaService.$transaction(async (tx) => {
       await this.createValidationTokenAndExpireOlds(
         {
@@ -133,7 +147,7 @@ export class AuthService {
     //send mail(token)
   }
   async resetPassword(info: ResetPasswordDto) {
-    const tokenHash = this.getTokenHash(info.token);
+    const tokenHash = getTokenHash(info.token);
     const verificationToken = await this.getAndCheckVerifiedVerificationToken(
       {
         identifier: info.identifier,
@@ -167,7 +181,6 @@ export class AuthService {
       'PASSWORD_RESET',
       this.prismaService,
     );
-    return 'change password success';
   }
   async requestChangeEmail(userId: string, newEmail: string) {
     //userId from token
@@ -176,8 +189,7 @@ export class AuthService {
     });
     if (existingUser)
       throw new UnauthorizedException('email is already in use.');
-    const token = this.createToken();
-    const tokenHash = this.getTokenHash(token);
+    const { token, tokenHash } = createTOkenAndHash();
     await this.prismaService.$transaction(async (tx) => {
       await this.createValidationTokenAndExpireOlds(
         {
@@ -196,7 +208,7 @@ export class AuthService {
   }
   async confirmChangeEmail(info: ConfirmChangeEmailDto) {
     const { newEmail, token } = info;
-    const tokenHash = this.getTokenHash(token);
+    const tokenHash = getTokenHash(token);
     const verificationToken = await this.getAndCheckVerifiedVerificationToken(
       {
         identifier: newEmail,
@@ -230,8 +242,7 @@ export class AuthService {
     if (!user) throw new UnauthorizedException("email didn't register");
     if (user.emailVerified)
       throw new UnauthorizedException('this email is already verified');
-    const token = this.createToken();
-    const tokenHash = this.getTokenHash(token);
+    const { token, tokenHash } = createTOkenAndHash();
     await this.prismaService.$transaction(async (tx) => {
       await this.createValidationTokenAndExpireOlds(
         {
@@ -243,30 +254,23 @@ export class AuthService {
         tx,
       );
     });
+    //sendEmail:token
   }
-  async checkTokenValid(info: CheckTokenValidDto) {
-    const tokenHash = this.getTokenHash(info.token);
+  async checkTokenValid(info: CheckTokenValidDto): Promise<void> {
+    const tokenHash = getTokenHash(info.token);
     await this.getAndCheckVerifiedVerificationToken(
       { ...info, tokenHash },
       this.prismaService,
     );
-    return true;
   }
   //
   // private
   //
-  private createToken(): string {
-    const token = crypto.randomBytes(32).toString('hex'); // 64字元隨機 token
-    console.log('token: ', token);
-    return token;
-  }
+
   private async getPasswordHash(password: string): Promise<string> {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
     return passwordHash;
-  }
-  private getTokenHash(token: string): string {
-    return crypto.createHash('sha256').update(token).digest('hex');
   }
 
   private async createValidationTokenAndExpireOlds(
