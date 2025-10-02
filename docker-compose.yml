@@ -20,6 +20,7 @@ services:
       - ./frontend:/usr/src/app
     ports:
       - "3000:3000" 
+    command: npm run dev
 
   mysql:
     image: mysql:8

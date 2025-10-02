@@ -1,0 +1,269 @@
+import type { Route } from "./+types/ForgetPasswordPage";
+import {
+  Box,
+  Button,
+  CssBaseline,
+  Divider,
+  FormControl,
+  TextField,
+  Typography,
+  Stack,
+  Link,
+  FormLabel,
+} from "@mui/material";
+import { useRef, useState, type RefObject } from "react";
+import { useNavigate } from "react-router";
+import { ContentCard, PageContainer } from "~/components/UI";
+import api from "../services/api";
+import { useNotification } from "~/context/NotificationContext";
+
+export default function ForgetPasswordPage() {
+  const navigate = useNavigate();
+  const [phase, setPhase] = useState<"inputEmail" | "verifyToken">(
+    "inputEmail"
+  );
+  const email = useRef<HTMLInputElement>(null);
+  const newPassword = useRef<HTMLInputElement>(null);
+  const token = useRef<HTMLInputElement>(null);
+  const [emailErrorMessage, setEmailErrorMessage] = useState<string>("");
+  const [tokenErrorMessage, setTokenErrorMessage] = useState<string>("");
+  const { notify } = useNotification();
+  const [newPasswordErrorMessage, setnewPasswordErrorMessage] =
+    useState<string>("");
+
+  const handleSearch = async () => {
+    notify(new Date().toLocaleTimeString(), "info");
+    setEmailErrorMessage("");
+    if (!email.current?.value)
+      return setEmailErrorMessage("please enter email.");
+
+    if (email.current.value.length < 4)
+      return setEmailErrorMessage("please enter correct email.");
+    const { token } = await api.requestPasswordReset(email.current.value);
+    notify("(develope) token: " + token, "info");
+    setPhase("verifyToken");
+  };
+  const handleCancel = () => {
+    navigate("/login");
+  };
+  const handleDidNotGetToken = () => {
+    notify("還沒實作", "warning");
+  };
+  const handleVerifyToken = async () => {
+    if (
+      token.current?.value ||
+      email.current?.value ||
+      newPassword.current?.value
+    ) {
+      setEmailErrorMessage("something error");
+      setnewPasswordErrorMessage("something error");
+      return;
+    }
+    await api
+      .PasswordReset({
+        token: (token.current as HTMLInputElement).value,
+        identifier: (email.current as HTMLInputElement).value,
+        newPassword: (newPassword.current as HTMLInputElement).value,
+      })
+      .catch((e: Error) => {
+        setTokenErrorMessage(e.message);
+        setnewPasswordErrorMessage(e.message);
+      });
+  };
+
+  return (
+    <>
+      <PageContainer>
+        {phase === "inputEmail" ? (
+          <ForgetPasswordForm
+            email={email}
+            emailErrorMessage={emailErrorMessage}
+            onCancel={handleCancel}
+            onSearch={handleSearch}
+          />
+        ) : (
+          <VerifyTokenForm
+            token={token}
+            tokenErrorMessage={tokenErrorMessage}
+            password={newPassword}
+            passwordErrorMessage={newPasswordErrorMessage}
+            onCancel={handleCancel}
+            onDidNotGetToken={handleDidNotGetToken}
+            onVerifyToken={handleVerifyToken}
+          />
+        )}
+      </PageContainer>
+    </>
+  );
+}
+
+const ForgetPasswordForm = (props: {
+  email: RefObject<HTMLInputElement | null>;
+  emailErrorMessage: string;
+  onCancel: (...args: any) => any;
+  onSearch: (...args: any) => any;
+}) => {
+  const { email, emailErrorMessage, onCancel, onSearch } = props;
+  return (
+    <ContentCard>
+      <Typography
+        component="h1"
+        variant="h4"
+        sx={{ width: "100%", fontSize: "clamp(2rem, 10vw, 2.15rem)" }}
+      >
+        Forget Password
+      </Typography>
+      <Divider />
+      <Typography variant="h6">
+        Please enter your email to search for your account.
+      </Typography>
+
+      <Box
+        component="form"
+        noValidate
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          gap: 2,
+        }}
+      >
+        <FormControl>
+          <TextField
+            inputRef={email}
+            error={!!emailErrorMessage}
+            helperText={emailErrorMessage}
+            id="email"
+            type="email"
+            name="email"
+            placeholder="your@email.com"
+            autoComplete="email"
+            autoFocus
+            required
+            fullWidth
+            variant="outlined"
+            // color={emailErrorMessage ? "error" : "primary"}
+          />
+        </FormControl>
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            // 讓按鈕靠右對齊 (類似圖片的常見彈窗佈局)
+            justifyContent: "flex-end",
+            // 增加一些整體邊距，模擬圖片中的卡片邊緣
+            padding: 2,
+            borderTop: "1px solid #eee", // 模擬上方的分隔線
+          }}
+        >
+          <Button variant="outlined" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={onSearch}>
+            Search
+          </Button>
+        </Stack>
+      </Box>
+    </ContentCard>
+  );
+};
+const VerifyTokenForm = (props: {
+  token: RefObject<HTMLInputElement | null>;
+  tokenErrorMessage: string;
+  password: RefObject<HTMLInputElement | null>;
+  passwordErrorMessage: string;
+  onCancel: (...args: any) => any;
+  onDidNotGetToken: (...args: any) => any;
+  onVerifyToken: (...args: any) => any;
+}) => {
+  const {
+    token,
+    tokenErrorMessage,
+    password,
+    passwordErrorMessage,
+    onDidNotGetToken,
+    onVerifyToken,
+    onCancel,
+  } = props;
+  return (
+    <ContentCard>
+      <Typography
+        component="h1"
+        variant="h4"
+        sx={{ width: "100%", fontSize: "clamp(2rem, 10vw, 2.15rem)" }}
+      >
+        Enter security code
+      </Typography>
+      <Divider />
+      <Typography variant="h6">
+        Please check your email for a message with your code.
+      </Typography>
+
+      <Box
+        component="form"
+        // onSubmit={handleSubmit}
+        noValidate
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          gap: 2,
+        }}
+      >
+        <FormControl>
+          <FormLabel htmlFor="token">token</FormLabel>
+          <TextField
+            inputRef={token}
+            error={!!tokenErrorMessage}
+            helperText={tokenErrorMessage}
+            name="token"
+            placeholder="your token"
+            autoFocus
+            required
+            fullWidth
+            variant="outlined"
+            color={tokenErrorMessage ? "error" : "primary"}
+          />
+          <FormLabel htmlFor="newPassword">new password</FormLabel>
+          <TextField
+            inputRef={password}
+            error={!!passwordErrorMessage}
+            helperText={passwordErrorMessage}
+            name="password"
+            placeholder="your token"
+            autoFocus
+            required
+            fullWidth
+            variant="outlined"
+            color={passwordErrorMessage ? "error" : "primary"}
+          />
+        </FormControl>
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            justifyContent: "flex-end",
+            padding: 2,
+            borderTop: "1px solid #eee",
+          }}
+        >
+          <Link
+            component="button"
+            type="button"
+            onClick={onDidNotGetToken}
+            variant="body2"
+            sx={{ alignSelf: "center" }}
+          >
+            Didn't get a code?
+          </Link>
+          <Button variant="outlined" sx={{ ml: "auto" }} onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={onVerifyToken}>
+            Countion
+          </Button>
+        </Stack>
+      </Box>
+    </ContentCard>
+  );
+};
