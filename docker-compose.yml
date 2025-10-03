@@ -13,14 +13,14 @@ services:
       - mysql
       - redis
       - rabbitmq
-  frontend:
-    build: ./frontend
-    container_name: chat_frontend
-    volumes:
-      - ./frontend:/usr/src/app
-    ports:
-      - "3000:3000" 
-    command: npm run dev
+  # frontend:
+  #   build: ./frontend
+  #   container_name: chat_frontend
+  #   volumes:
+  #     - ./frontend:/usr/src/app
+  #   ports:
+  #     - "3000:3000" 
+  #   command: npm run dev
 
   mysql:
     image: mysql:8

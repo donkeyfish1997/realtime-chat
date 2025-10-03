@@ -1,43 +1,67 @@
 import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
+
 const email = z.email();
 const newEmail = email;
-const password = z.string();
+const password = z.string().min(8).trim().nonempty();
 const newPassword = password;
 const identifier = z.email();
 const token = z.string();
 const type = z.enum(['EMAIL_VERIFY', 'PASSWORD_RESET', 'CHANGE_EMAIL']);
 
-export const registerSchema = z.object({ email, password });
-export type RegisterDto = z.infer<typeof registerSchema>;
+const userSchema = z.object({
+  email,
+  name: z.string().nullable(),
+  id: z.string(),
+  emailVerified: z.coerce.string().nullable().optional(),
+  image: z.url().nullable(),
+});
+export class UserDto extends createZodDto(userSchema) {}
 
-export const verifyEmailSchema = z.object({ token, identifier });
-export type VerifyEmailDto = z.infer<typeof verifyEmailSchema>;
+const loginSchema = z.object({ email, password });
+export class LoginDto extends createZodDto(loginSchema) {}
 
-export const requestPasswordResetSchema = z.object({ email });
-export type requestPasswordResetDto = z.infer<
-  typeof requestPasswordResetSchema
->;
+const loginResponseSchema = z.object({
+  access_token: z.string(),
+  user: userSchema,
+});
+export class LoginResponseDto extends createZodDto(loginResponseSchema) {}
 
-export const resendVerificationEmailSchema = z.object({ email });
-export type ResendVerificationEmailDto = z.infer<
-  typeof resendVerificationEmailSchema
->;
+const registerSchema = z.object({ email, password });
+export class RegisterDto extends createZodDto(registerSchema) {}
 
-export type RequestPasswordResetDto = z.infer<
-  typeof requestPasswordResetSchema
->;
+const verifyEmailSchema = z.object({ token, identifier });
+export class VerifyEmailDto extends createZodDto(verifyEmailSchema) {}
 
-export const resetPasswordSchema = z.object({ token, identifier, newPassword });
-export type ResetPasswordDto = z.infer<typeof resetPasswordSchema>;
+const requestPasswordResetSchema = z.object({ email });
+export class RequestPasswordResetDto extends createZodDto(
+  requestPasswordResetSchema,
+) {}
 
-export const requestChangeEmailSchema = z.object({
-  // userId: z.cuid().optional(), // 如果從 JWT 取得則可選
+const resendVerificationEmailSchema = z.object({ email });
+export class ResendVerificationEmailDto extends createZodDto(
+  resendVerificationEmailSchema,
+) {}
+
+const resetPasswordSchema = z.object({ token, identifier, newPassword });
+export class ResetPasswordDto extends createZodDto(resetPasswordSchema) {}
+
+const requestChangeEmailSchema = z.object({
   newEmail,
 });
-export type RequestChangeEmailDto = z.infer<typeof requestChangeEmailSchema>;
+export class RequestChangeEmailDto extends createZodDto(
+  requestChangeEmailSchema,
+) {}
 
-export const confirmChangeEmailSchema = z.object({ newEmail, token });
-export type ConfirmChangeEmailDto = z.infer<typeof confirmChangeEmailSchema>;
+const confirmChangeEmailSchema = z.object({ newEmail, token });
+export class ConfirmChangeEmailDto extends createZodDto(
+  confirmChangeEmailSchema,
+) {}
 
-export const checkTokenValidSchema = z.object({ token, identifier, type });
-export type CheckTokenValidDto = z.infer<typeof checkTokenValidSchema>;
+const checkTokenValidSchema = z.object({ token, identifier, type });
+export class CheckTokenValidDto extends createZodDto(checkTokenValidSchema) {}
+
+const getAccessTokenResponseSchema = z.object({ access_token: z.string() });
+export class GetAccessTokenResponseDto extends createZodDto(
+  getAccessTokenResponseSchema,
+) {}

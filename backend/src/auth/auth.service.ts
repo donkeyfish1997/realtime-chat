@@ -106,9 +106,16 @@ export class AuthService {
     return null;
   }
   // this function already authentication info through local passport stratage
-  async login(user: User, res: Response): Promise<{ access_token: string }> {
+  async login(
+    user: User,
+    res: Response,
+  ): Promise<{
+    user: User;
+    access_token: string;
+  }> {
     await this.refreshTokenService.create(user.id, res);
     return {
+      user,
       access_token: this.jwtService.sign(user),
     };
   }
