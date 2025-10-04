@@ -23,7 +23,6 @@ export default defineConfig({
 
         secure: false, // 必須: 確保在 http://localhost 上運作
         rewrite: (path) => {
-          console.log("path: ", path);
           return path.replace(/^\/apii/, "");
         },
       },

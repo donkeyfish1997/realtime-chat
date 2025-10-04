@@ -50,14 +50,14 @@ export default function App() {
   return (
     <>
       <CssBaseline enableColorScheme />
-      <AuthProvider>
-        <Navbar />
-        <PageContainer direction="column" justifyContent="space-between">
-          <NotificationProvider>
+      <NotificationProvider>
+        <AuthProvider>
+          <Navbar />
+          <PageContainer direction="column" justifyContent="space-between">
             <Outlet />
-          </NotificationProvider>
-        </PageContainer>
-      </AuthProvider>
+          </PageContainer>
+        </AuthProvider>
+      </NotificationProvider>
     </>
   );
 }

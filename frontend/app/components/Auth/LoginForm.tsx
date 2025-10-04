@@ -11,7 +11,7 @@ import { ContentCard } from "../UI";
 import { useNavigate } from "react-router";
 import { useAuth } from "~/context/AuthContext";
 
-export default function SignIn() {
+export default function LoginForm() {
   const auth = useAuth();
   const navigate = useNavigate();
   const email = useRef<HTMLInputElement>(null);
@@ -135,11 +135,7 @@ export default function SignIn() {
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Typography sx={{ textAlign: "center" }}>
             Don&apos;t have an account?{" "}
-            <Link
-              href="/material-ui/getting-started/templates/sign-in/"
-              variant="body2"
-              sx={{ alignSelf: "center" }}
-            >
+            <Link href="/sign-up/" variant="body2" sx={{ alignSelf: "center" }}>
               Sign up
             </Link>
           </Typography>

@@ -20,7 +20,7 @@ import {
   RegisterDto,
   ResetPasswordDto,
   VerifyEmailDto,
-} from './dto/authController.dto';
+} from './dto/auth.dto';
 import { createTOkenAndHash, getTokenHash } from './utilities/tokenAndHash';
 import { Request, Response } from 'express';
 import { RefreshTokenService } from './refresh-token/refresh-token.service';
@@ -131,6 +131,7 @@ export class AuthService {
       user,
     };
   }
+
   async requestPasswordReset(email: string) {
     const user = await this.userService.user({ email });
     if (!user) throw new UnauthorizedException('email not registered.');

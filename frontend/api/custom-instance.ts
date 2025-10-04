@@ -2,7 +2,6 @@ import Axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
 
 let accessToken: string | null = null;
 export const setAccessToken = (token: string) => {
-  console.log("setAccessToken", token);
   accessToken = token;
 };
 
@@ -38,7 +37,6 @@ export const customInstance = async <T>(
   options?: AxiosRequestConfig
 ): Promise<T> => {
   try {
-    console.log("do customInstance"); //這裡有執行到
     const response: AxiosResponse<T> = await AXIOS_INSTANCE({
       ...config,
       ...options,

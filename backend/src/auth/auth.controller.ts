@@ -15,7 +15,6 @@ import { Public } from '../common/decorator/public.decorator';
 import {
   CheckTokenValidDto,
   ConfirmChangeEmailDto,
-  GetAccessTokenResponseDto,
   RegisterDto,
   RequestChangeEmailDto,
   RequestPasswordResetDto,
@@ -24,7 +23,7 @@ import {
   VerifyEmailDto,
   LoginResponseDto,
   LoginDto,
-} from './dto/authController.dto';
+} from './dto/auth.dto';
 import { User } from '@prisma/client';
 import { ZodResponse } from 'nestjs-zod';
 import { ApiBody, ApiSecurity } from '@nestjs/swagger';
@@ -47,13 +46,8 @@ export class AuthController {
       req.user as NonNullable<Request['user']>,
       res,
     );
-    res.cookie('test', 'testtest1', {
-      httpOnly: false,
-      secure: false, // 必須是 false
-      sameSite: 'none',
-      maxAge: 3600000,
-    });
-    const emailVerified = user.emailVerified?.toDateString();
+
+    const emailVerified = user.emailVerified?.toDateString() ?? null;
     return { access_token, user: { ...user, emailVerified } };
   }
   // -------- //
@@ -71,7 +65,7 @@ export class AuthController {
   @Post('get-access-token')
   async getAccessToken(@Req() req: Request): Promise<LoginResponseDto> {
     const { access_token, user } = await this.authService.getAccessToken(req);
-    const emailVerified = user.emailVerified?.toDateString();
+    const emailVerified = user.emailVerified?.toDateString() ?? null;
     return { access_token, user: { ...user, emailVerified } };
   }
 

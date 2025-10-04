@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
+import { userSchema } from 'src/user/dto/user.dto';
 
 const email = z.email();
 const newEmail = email;
@@ -8,15 +9,6 @@ const newPassword = password;
 const identifier = z.email();
 const token = z.string();
 const type = z.enum(['EMAIL_VERIFY', 'PASSWORD_RESET', 'CHANGE_EMAIL']);
-
-const userSchema = z.object({
-  email,
-  name: z.string().nullable(),
-  id: z.string(),
-  emailVerified: z.coerce.string().nullable().optional(),
-  image: z.url().nullable(),
-});
-export class UserDto extends createZodDto(userSchema) {}
 
 const loginSchema = z.object({ email, password });
 export class LoginDto extends createZodDto(loginSchema) {}
