@@ -59,8 +59,8 @@ function AuthStatusDisplay() {
         </Typography>
         <IconButton onClick={handleMenu} color="inherit" edge="end">
           <Avatar
-            alt={user.email}
-            src={user.avatarUrl}
+            alt={user.image ?? undefined}
+            src={user.image ?? undefined}
             sx={{ width: 32, height: 32 }}
           />
         </IconButton>

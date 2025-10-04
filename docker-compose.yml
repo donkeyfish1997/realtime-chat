@@ -11,16 +11,19 @@ services:
       - ./backend:/usr/src/app
     depends_on:
       - mysql
-      - redis
-      - rabbitmq
-  # frontend:
-  #   build: ./frontend
-  #   container_name: chat_frontend
-  #   volumes:
-  #     - ./frontend:/usr/src/app
-  #   ports:
-  #     - "3000:3000" 
-  #   command: npm run dev
+      # - redis
+      # - rabbitmq
+  frontend:
+    build: 
+      context: ./frontend      # 👈 建置的上下文目錄
+      dockerfile: dev.Dockerfile # 👈 指定使用 dev.dockerfile
+    container_name: chat_frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # 不要分享
+    ports:
+      - "5173:5173" 
+    command: npm run dev -- --host 0.0.0.0
 
   mysql:
     image: mysql:8
@@ -36,24 +39,24 @@ services:
     ports:
       - "3306:3306"
 
-  redis:
-    image: redis:7
-    container_name: chat_redis
-    restart: always
-    ports:
-      - "6379:6379"
-    command: ["redis-server", "--save", "60", "1"]
+  # redis:
+  #   image: redis:7
+  #   container_name: chat_redis
+  #   restart: always
+  #   ports:
+  #     - "6379:6379"
+  #   command: ["redis-server", "--save", "60", "1"]
 
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: chat_rabbitmq
-    restart: always
-    ports:
-      - "5672:5672"
-      - "15672:15672" # management UI
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+  # rabbitmq:
+  #   image: rabbitmq:3-management
+  #   container_name: chat_rabbitmq
+  #   restart: always
+  #   ports:
+  #     - "5672:5672"
+  #     - "15672:15672" # management UI
+  #   environment:
+  #     RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+  #     RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
 
 volumes:
   mysql_data:

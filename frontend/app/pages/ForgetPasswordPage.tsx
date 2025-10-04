@@ -1,8 +1,11 @@
+import {
+  authControllerRequestPasswordReset,
+  authControllerResetPassword,
+} from "api/auth";
 import type { Route } from "./+types/ForgetPasswordPage";
 import {
   Box,
   Button,
-  CssBaseline,
   Divider,
   FormControl,
   TextField,
@@ -13,9 +16,9 @@ import {
 } from "@mui/material";
 import { useRef, useState, type RefObject } from "react";
 import { useNavigate } from "react-router";
-import { ContentCard, PageContainer } from "~/components/UI";
-import api from "../services/api";
+import { ContentCard } from "~/components/UI";
 import { useNotification } from "~/context/NotificationContext";
+import { AxiosError } from "axios";
 
 export default function ForgetPasswordPage() {
   const navigate = useNavigate();
@@ -30,18 +33,23 @@ export default function ForgetPasswordPage() {
   const { notify } = useNotification();
   const [newPasswordErrorMessage, setnewPasswordErrorMessage] =
     useState<string>("");
+  const [searchedEmail, setSearchedEmail] = useState<string | null>(null);
 
   const handleSearch = async () => {
-    notify(new Date().toLocaleTimeString(), "info");
     setEmailErrorMessage("");
     if (!email.current?.value)
       return setEmailErrorMessage("please enter email.");
 
     if (email.current.value.length < 4)
       return setEmailErrorMessage("please enter correct email.");
-    const { token } = await api.requestPasswordReset(email.current.value);
-    notify("(develope) token: " + token, "info");
-    setPhase("verifyToken");
+    try {
+      await authControllerRequestPasswordReset({ email: email.current.value });
+      setSearchedEmail(email.current.value);
+      notify("(develope) token: " + "aa112233");
+      setPhase("verifyToken");
+    } catch (error) {
+      setEmailErrorMessage("can not find this email");
+    }
   };
   const handleCancel = () => {
     navigate("/login");
@@ -51,48 +59,53 @@ export default function ForgetPasswordPage() {
   };
   const handleVerifyToken = async () => {
     if (
-      token.current?.value ||
-      email.current?.value ||
-      newPassword.current?.value
+      !(token.current?.value || searchedEmail || newPassword.current?.value)
     ) {
       setEmailErrorMessage("something error");
       setnewPasswordErrorMessage("something error");
       return;
     }
-    await api
-      .PasswordReset({
-        token: (token.current as HTMLInputElement).value,
-        identifier: (email.current as HTMLInputElement).value,
-        newPassword: (newPassword.current as HTMLInputElement).value,
+
+    await authControllerResetPassword({
+      token: (token.current as HTMLInputElement).value,
+      identifier: searchedEmail as string,
+      newPassword: (newPassword.current as HTMLInputElement).value,
+    })
+      .then(() => {
+        notify("reset password success");
+        navigate("/");
       })
-      .catch((e: Error) => {
-        setTokenErrorMessage(e.message);
-        setnewPasswordErrorMessage(e.message);
+      .catch((e) => {
+        const message =
+          e instanceof AxiosError
+            ? (e.response?.data.message as string)
+            : "token error";
+
+        setTokenErrorMessage(message);
+        setnewPasswordErrorMessage(message);
       });
   };
 
   return (
     <>
-      <PageContainer>
-        {phase === "inputEmail" ? (
-          <ForgetPasswordForm
-            email={email}
-            emailErrorMessage={emailErrorMessage}
-            onCancel={handleCancel}
-            onSearch={handleSearch}
-          />
-        ) : (
-          <VerifyTokenForm
-            token={token}
-            tokenErrorMessage={tokenErrorMessage}
-            password={newPassword}
-            passwordErrorMessage={newPasswordErrorMessage}
-            onCancel={handleCancel}
-            onDidNotGetToken={handleDidNotGetToken}
-            onVerifyToken={handleVerifyToken}
-          />
-        )}
-      </PageContainer>
+      {phase === "inputEmail" ? (
+        <ForgetPasswordForm
+          email={email}
+          emailErrorMessage={emailErrorMessage}
+          onCancel={handleCancel}
+          onSearch={handleSearch}
+        />
+      ) : (
+        <VerifyTokenForm
+          token={token}
+          tokenErrorMessage={tokenErrorMessage}
+          password={newPassword}
+          passwordErrorMessage={newPasswordErrorMessage}
+          onCancel={handleCancel}
+          onDidNotGetToken={handleDidNotGetToken}
+          onVerifyToken={handleVerifyToken}
+        />
+      )}
     </>
   );
 }

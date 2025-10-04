@@ -1,26 +1,44 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { AuthContext } from "./AuthContext";
-import type { User } from "./AuthContext";
-import api from "~/services/api";
+import type { LoginResponseDtoOutputUser } from "api/models";
+import { useNavigate } from "react-router";
+import {
+  authControllerGetAccessToken,
+  authControllerLogin,
+  authControllerLogout,
+} from "api/auth";
+import { clearAccessToken, setAccessToken } from "api/custom-instance";
 
 export default function AuthProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [user, setUser] = useState<User | null>(null);
+  const navigate = useNavigate();
+  const [user, setUser] = useState<LoginResponseDtoOutputUser | null>(null);
 
   const login = async (email: string, password: string) => {
-    const { name, refreshToken } = await api.login(email, password);
-    setUser({
-      email: email,
-      avatarUrl: "https://i.pravatar.cc/300?img=68",
+    const { user, access_token } = await authControllerLogin({
+      email,
+      password,
     });
+    setAccessToken(access_token);
+    setUser(user);
+    navigate("/");
   };
 
   const logout = async () => {
+    await authControllerLogout();
+    clearAccessToken();
     setUser(null);
   };
+
+  useEffect(() => {
+    authControllerGetAccessToken().then(({ access_token, user }) => {
+      setAccessToken(access_token);
+      setUser(user);
+    });
+  }, []);
 
   const value = useMemo(() => ({ user, login, logout }), [user]);
 

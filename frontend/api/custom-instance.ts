@@ -1,36 +1,29 @@
 import Axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
 
-// --- 輔助函式：Token 管理 ---
-
-// 1. 儲存 Token 到持久化儲存 (例如 localStorage)
+let accessToken: string | null = null;
 export const setAccessToken = (token: string) => {
-  localStorage.setItem("accessToken", token);
+  console.log("setAccessToken", token);
+  accessToken = token;
 };
 
-// 2. 獲取 Token
-const getAccessToken = (): string | null => {
-  return localStorage.getItem("accessToken");
-};
-
-// 3. 清除 Token (登出時使用)
 export const clearAccessToken = () => {
-  localStorage.removeItem("accessToken");
+  accessToken = null;
 };
 
 // --- 核心 Mutator 邏輯 ---
 
-export const AXIOS_INSTANCE = Axios.create({});
+export const AXIOS_INSTANCE = Axios.create({
+  baseURL: "/apii",
+  withCredentials: true,
+});
 
 // 設定請求攔截器 (Interceptor) 來自動注入 Bearer Token
 AXIOS_INSTANCE.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
-    const token = getAccessToken();
-
-    // 只有在 Token 存在時才加入 Authorization 標頭
-    if (token) {
+  (config) => {
+    if (accessToken) {
       config.headers = config.headers || {};
       // 注入 Bearer Token
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   },
@@ -44,8 +37,8 @@ export const customInstance = async <T>(
   config: AxiosRequestConfig,
   options?: AxiosRequestConfig
 ): Promise<T> => {
-  // 注意：這裡不需要再手動操作 headers，因為我們已經在攔截器中處理了
   try {
+    console.log("do customInstance"); //這裡有執行到
     const response: AxiosResponse<T> = await AXIOS_INSTANCE({
       ...config,
       ...options,

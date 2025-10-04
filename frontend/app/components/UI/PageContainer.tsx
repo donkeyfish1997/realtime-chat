@@ -2,8 +2,10 @@ import { styled } from "@mui/material/styles";
 import Stack from "@mui/material/Stack";
 
 const PageContainer = styled(Stack)(({ theme }) => ({
-  height: "calc((1 - var(--template-frame-height, 0)) * 100dvh)",
+  "--navbar-height": "var(--MuiToolbar-minHeight)",
+  height: "calc(100dvh - var(--navbar-height))",
   minHeight: "100%",
+  overflowY: "auto",
   padding: theme.spacing(2),
   [theme.breakpoints.up("sm")]: {
     padding: theme.spacing(4),

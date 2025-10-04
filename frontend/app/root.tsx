@@ -13,6 +13,7 @@ import { NotificationProvider } from "./context/NotificationProvider";
 import AuthProvider from "./context/AuthProvider";
 import Navbar from "./components/Navbar";
 import { CssBaseline } from "@mui/material";
+import { PageContainer } from "./components/UI";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -51,9 +52,11 @@ export default function App() {
       <CssBaseline enableColorScheme />
       <AuthProvider>
         <Navbar />
-        <NotificationProvider>
-          <Outlet />
-        </NotificationProvider>
+        <PageContainer direction="column" justifyContent="space-between">
+          <NotificationProvider>
+            <Outlet />
+          </NotificationProvider>
+        </PageContainer>
       </AuthProvider>
     </>
   );

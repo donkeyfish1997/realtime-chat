@@ -55,7 +55,6 @@ export function NotificationProvider({
     event?: React.SyntheticEvent | Event,
     reason?: string
   ) => {
-    console.log("handleClose", reason);
     if (reason === "clickaway") {
       return; // 點擊通知以外的地方不關閉
     }

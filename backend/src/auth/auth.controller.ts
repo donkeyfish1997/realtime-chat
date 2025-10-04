@@ -47,6 +47,12 @@ export class AuthController {
       req.user as NonNullable<Request['user']>,
       res,
     );
+    res.cookie('test', 'testtest1', {
+      httpOnly: false,
+      secure: false, // 必須是 false
+      sameSite: 'none',
+      maxAge: 3600000,
+    });
     const emailVerified = user.emailVerified?.toDateString();
     return { access_token, user: { ...user, emailVerified } };
   }
@@ -61,10 +67,12 @@ export class AuthController {
     return this.authService.logout(user, res);
   }
   // -------- //
-  @ZodResponse({ type: GetAccessTokenResponseDto })
+  @ZodResponse({ type: LoginResponseDto })
   @Post('get-access-token')
-  getAccessToken(@Req() req: Request): Promise<{ access_token: string }> {
-    return this.authService.getAccessToken(req);
+  async getAccessToken(@Req() req: Request): Promise<LoginResponseDto> {
+    const { access_token, user } = await this.authService.getAccessToken(req);
+    const emailVerified = user.emailVerified?.toDateString();
+    return { access_token, user: { ...user, emailVerified } };
   }
 
   // -------- //
