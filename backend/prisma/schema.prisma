@@ -26,6 +26,8 @@ model User {
   sessions      Session[] // 關聯：一個 User 可以有多個 Session (多個登入裝置)
   credential    Credential? 
   verificationToken  VerificationToken[]
+  senderUser    Message[]   @relation("SentMessages") 
+  recipientUser  Message[]  @relation("ReceivedMessages") 
 
 
   @@map("users") // 習慣將表名設定為複數
@@ -104,3 +106,25 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
+enum MessageStatus {
+  SENT       // 訊息已從發送者發出
+  DELIVERED  // 訊息已送達接收者的設備
+  READ       // 訊息已被接收者閱讀
+}
+model Message {
+  id                String    @id @default(cuid())
+  sender_id         String
+  recipient_id      String
+  content           String
+  created_at        DateTime
+  status            MessageStatus
+  conversation_id   String
+
+  senderUser        User  @relation("SentMessages", fields: [sender_id], references: [id], onDelete: Cascade)
+  recipientUser     User  @relation("ReceivedMessages", fields: [recipient_id], references: [id], onDelete: Cascade)
+  @@map("messages")
+}
+// content	TEXT	訊息的實際內容。	無
+
+// status	ENUM/SMALLINT	訊息的狀態（例如：SENT, DELIVERED, READ）。	Index (用於未讀計數)
+// conversation_id	UUID	簡化查詢用的對話 ID (見下方說明)。	Cluster/Composite Index

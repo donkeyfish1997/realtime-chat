@@ -3,11 +3,8 @@ import { JwtUserPayload } from './JwtUserPayload';
 
 // 擴充 Express 的 Request 介面
 // 這樣你的 Request 物件就會知道它有一個 'user' 屬性
-declare module 'express' {
-  interface Request {
-    /**
-     * @description JWT 策略驗證成功後，附加在 Request 上的使用者資料。
-     */
+declare module 'socket.io' {
+  interface Socket {
     user?: JwtUserPayload; // 使用可選屬性，因為並非所有路由都有 user
   }
 }
