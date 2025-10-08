@@ -15,6 +15,15 @@ import Navbar from "./components/Navbar";
 import { CssBaseline } from "@mui/material";
 import { PageContainer } from "./components/UI";
 
+export function meta() {
+  return [
+    { charset: "utf-8" },
+
+    { title: "real time chat" },
+    { name: "description", content: "Welcome to real time chat!" },
+  ];
+}
+
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {

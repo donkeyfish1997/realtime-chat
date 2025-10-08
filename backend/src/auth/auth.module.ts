@@ -19,5 +19,6 @@ if (!JWT_SECRET) throw new Error('can not find env.JWT_SECRET');
   ],
   providers: [AuthService, LocalStrategy, JwtStrategy],
   controllers: [AuthController],
+  exports: [JwtModule],
 })
 export class AuthModule {}

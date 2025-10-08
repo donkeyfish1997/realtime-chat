@@ -75,6 +75,7 @@ export class ChatGateway
       client.user = user;
       console.log(`用戶 ${user.email} 連線成功: ${client.id}`);
       this.chatService.addSocket(user.id, client.id);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       // 4. 驗證失敗：拒絕連線
       console.log(`連線 ${client.id} 認證失敗，拒絕。`);

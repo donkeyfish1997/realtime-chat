@@ -1,8 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { Server } from 'socket.io';
+import { Server as SocketIoServer } from 'socket.io';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma, type Message } from '@prisma/client';
-
+import {
+  ClientToServerEvents,
+  InterServerEvents,
+  ServerToClientEvents,
+  SocketData,
+} from '../types/socket.types';
+type Server = SocketIoServer<
+  ClientToServerEvents,
+  ServerToClientEvents,
+  InterServerEvents,
+  SocketData
+>;
 export interface ChatSummary {
   // 1. 對話資訊
   conversationId: string; // 對話的唯一 ID (例如 "userA-userB")

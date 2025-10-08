@@ -6,5 +6,5 @@ export default [
   route("profile", "pages/ProfilePage.tsx"),
   route("forget-password", "pages/ForgetPasswordPage.tsx"),
   route("sign-up", "pages/SignUpPage.tsx"),
-  route("chat", "pages/Chatpage.tsx"),
+  route("chat", "pages/ChatPage.tsx"),
 ] satisfies RouteConfig;
