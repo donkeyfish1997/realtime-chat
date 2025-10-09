@@ -1,9 +1,46 @@
 import Axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
-
+//
+//
+//
+// 需要改，可能會鎖死！！！！
+//
+//
+//
+//
+//
 let accessToken: string | null = null;
-export const setAccessToken = (token: string) => {
-  accessToken = token;
+let tokenRefreshFn: () => Promise<void> = async () => {
+  throw "didn't set tokenRefreshFn";
 };
+let tokenRefreshPromise: Promise<void> | null = null; // Promise 鎖
+
+export function setAccessToken(token: string) {
+  accessToken = token;
+}
+
+export function setGetTokenFunction(fn: () => Promise<string>) {
+  // console.log("setGetTokenFunction");
+  tokenRefreshFn = async () => {
+    // console.log("do tokenRefreshFn");
+    tokenRefreshPromise = (async function () {
+      accessToken = null;
+      try {
+        // console.log("before do fn");
+        const token = await fn();
+        // console.log("after do fn");
+        // console.log("token", token);
+        accessToken = token;
+      } catch (e) {
+        accessToken = "fail";
+      }
+    })();
+    await tokenRefreshPromise.finally(() => {
+      // console.log("clear tokenRefreshFn");
+      tokenRefreshPromise = null;
+    });
+  };
+  tokenRefreshFn();
+}
 
 export const clearAccessToken = () => {
   accessToken = null;
@@ -18,8 +55,24 @@ export const AXIOS_INSTANCE = Axios.create({
 
 // 設定請求攔截器 (Interceptor) 來自動注入 Bearer Token
 AXIOS_INSTANCE.interceptors.request.use(
-  (config) => {
-    if (accessToken) {
+  async (config) => {
+    if (config.url?.includes("auth")) {
+      return config;
+    }
+    if (accessToken === null && tokenRefreshPromise === null) {
+      // console.log("if accessToken === null && tokenRefreshPromise === null");
+      tokenRefreshFn();
+    }
+    if (tokenRefreshPromise) {
+      // console.log("tokenRefreshPromise has value awiat tokenRefreshPromise");
+      // 如果已經有其他請求在刷新，則直接等待鎖定 Promise
+      await tokenRefreshPromise;
+      // console.log("await tokenRefreshPromise finish");
+    } else {
+      await tokenRefreshFn();
+    }
+
+    if (accessToken && accessToken !== "fail") {
       config.headers = config.headers || {};
       // 注入 Bearer Token
       config.headers.Authorization = `Bearer ${accessToken}`;
@@ -28,6 +81,24 @@ AXIOS_INSTANCE.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
+  }
+);
+AXIOS_INSTANCE.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status !== 401) {
+      return Promise.reject(error);
+    }
+    if (accessToken === "fail") {
+      return Promise.reject(error);
+    }
+
+    if (tokenRefreshPromise) {
+      await tokenRefreshPromise;
+    }
+    return AXIOS_INSTANCE(originalRequest);
   }
 );
 

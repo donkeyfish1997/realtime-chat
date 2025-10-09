@@ -1,11 +1,13 @@
 import { Avatar, Box, lighten, Stack, Typography } from "@mui/material";
+import type { GetHistoricalMessagesDtoOutput } from "api/models";
 import { getRendomAvatorUrl } from "utils/stringToHashNumber";
-import type { Message } from "~/pages/type";
 
 export default function MessageBubble({
   messageInfo,
+  userImg,
 }: {
-  messageInfo: Message;
+  messageInfo: GetHistoricalMessagesDtoOutput[0];
+  userImg: string;
 }) {
   return (
     <>
@@ -17,7 +19,7 @@ export default function MessageBubble({
         maxWidth={"80%"}
       >
         <Avatar
-          src={messageInfo.img ?? getRendomAvatorUrl(messageInfo.email)}
+          src={userImg}
           // sx={{ height: "100%", width: "auto", aspectRatio: "1 / 1" }}
         ></Avatar>
         <Box
@@ -27,7 +29,7 @@ export default function MessageBubble({
             borderRadius: "5px",
           })}
         >
-          <Typography alignContent={"center"}>{messageInfo.message}</Typography>
+          <Typography alignContent={"center"}>{messageInfo.content}</Typography>
         </Box>
       </Stack>
     </>

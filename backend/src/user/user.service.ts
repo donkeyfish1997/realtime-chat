@@ -21,9 +21,11 @@ export class UserService {
     cursor?: Prisma.UserWhereUniqueInput;
     where?: Prisma.UserWhereInput;
     orderBy?: Prisma.UserOrderByWithRelationInput;
+    select?: Prisma.UserSelect;
   }): Promise<User[]> {
-    const { skip, take, cursor, where, orderBy } = params;
+    const { skip, take, cursor, where, orderBy, select } = params;
     return this.prisma.user.findMany({
+      select,
       skip,
       take,
       cursor,
@@ -57,11 +59,20 @@ export class UserService {
   ) {
     const user = await this.updateUser({
       where: { id: userId },
-      data: { name, image },
+      data: { name: name ?? undefined, image },
     });
     return user;
   }
-
+  async searchUsers(query: string) {
+    const userWhereInput: Prisma.UserWhereInput = query
+      ? { name: { contains: query } }
+      : {};
+    const users = await this.prisma.user.findMany({
+      where: userWhereInput,
+      select: { name: true, id: true, image: true, emailVerified: false },
+    });
+    return users;
+  }
   async deleteUser(where: Prisma.UserWhereUniqueInput): Promise<User> {
     return this.prisma.user.delete({
       where,

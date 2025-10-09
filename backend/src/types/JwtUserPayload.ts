@@ -1,7 +1,7 @@
 export interface JwtUserPayload {
   id: string;
-  emailVerified: Date | null;
+  name: string;
   email: string;
-  name: string | null;
+  emailVerified: Date | null;
   image: string | null;
 }

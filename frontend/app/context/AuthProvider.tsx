@@ -7,7 +7,11 @@ import {
   authControllerLogin,
   authControllerLogout,
 } from "api/auth";
-import { clearAccessToken, setAccessToken } from "api/custom-instance";
+import {
+  clearAccessToken,
+  setAccessToken,
+  setGetTokenFunction,
+} from "api/custom-instance";
 import { userControllerUpdateUserBaseInfo } from "api/user";
 import { useNotification } from "./NotificationContext";
 
@@ -58,12 +62,13 @@ export default function AuthProvider({
   };
 
   useEffect(() => {
-    authControllerGetAccessToken()
-      .then(({ access_token, user }) => {
-        setAccessToken(access_token);
-        setUser(user);
-      })
-      .catch(() => {});
+    setGetTokenFunction(async () => {
+      // console.log("before authControllerGetAccessToken");
+      const { access_token, user } = await authControllerGetAccessToken();
+      // console.log("after authControllerGetAccessToken");
+      setUser(user);
+      return access_token;
+    });
   }, []);
 
   const value = useMemo(

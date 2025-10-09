@@ -1,54 +1,89 @@
-import {
-  Box,
-  Divider,
-  InputAdornment,
-  lighten,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Divider, lighten, Stack } from "@mui/material";
 import { Search as SearchIcon } from "@mui/icons-material";
 import { useImmer } from "use-immer";
 import UserList from "~/components/Chat/UserList";
 import MessageBox from "~/components/Chat/MessageBox";
-import type { Message, User } from "./type";
+import { useEffect } from "react";
+
+import {
+  chatControllerGetChatSummaries,
+  chatControllerGetHistoricalMessages,
+} from "../../api/chat";
+import type {
+  ChatSummaryOutputDtoOutput,
+  GetHistoricalMessagesDtoOutput,
+  SearchUserQueryResDtoOutputItem,
+} from "api/models";
+import SearchBlock from "~/components/Chat/SearchBlock";
+import { userControllerSearchUsers } from "api/user";
+import { getRendomAvatorUrl } from "utils/stringToHashNumber";
 
 export default function ChatPage() {
-  const [users, setUsers] = useImmer<User[]>([
-    { id: "0", email: "David1@example.com", lastMessage: "last Message" },
-    { id: "1", email: "David2@example.com", lastMessage: "last Message" },
-    { id: "2", email: "David3@example.com", lastMessage: "last Message" },
-    { id: "3", email: "David4@example.com", lastMessage: "last Message" },
-  ]);
-  const [currentUser, setCurrentUser] = useImmer<User | null>(users[0]);
-  const [currentChatHistory, setCurrentChatHistory] = useImmer<Message[]>([
-    {
-      email: "name1",
-      message:
-        "messagess1 1 1 messagess1 1 1 messagess1 1 1 messagess1 1 1 messagess1 1 1 messagess1 1 1 messagess1 1 1 messagess1 1 1 messagess1 1 1 messagess1 1 1 messagess1 1 1 messagess1 1 1 messagess1 1 1 messagess1 1 1 ",
-    },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-    { email: "name1", message: "messagess1 1 1 " },
-  ]);
+  // user search
+  const [searchUserInfo, setSearchUserInfo] = useImmer<{
+    userOptions: (SearchUserQueryResDtoOutputItem & { image: string })[];
+    currectUser: (SearchUserQueryResDtoOutputItem & { image: string }) | null;
+    isLoading: boolean;
+    currentText: string;
+  }>({ currentText: "", userOptions: [], currectUser: null, isLoading: false });
+  const handleSearchUsers = async () => {
+    setSearchUserInfo((searchUserInfo) => {
+      searchUserInfo.isLoading = true;
+    });
+    try {
+      const _userOptions = await userControllerSearchUsers({
+        query: searchUserInfo.currentText,
+      });
+      const userOptions = _userOptions.map((user) => {
+        return { ...user, image: user.image ?? getRendomAvatorUrl(user.id) };
+      });
+      setSearchUserInfo((searchUserInfo) => {
+        searchUserInfo.userOptions = userOptions;
+      });
+
+      console.log("userOptions", searchUserInfo);
+    } catch (error) {
+    } finally {
+      setSearchUserInfo((searchUserInfo) => {
+        searchUserInfo.isLoading = false;
+      });
+    }
+  };
+  const handleSectedUser = async (
+    e: any,
+    currectUser: (SearchUserQueryResDtoOutputItem & { image: string }) | null
+  ) => {
+    setSearchUserInfo((searchUserInfo) => {
+      searchUserInfo.currectUser = currectUser;
+    });
+  };
+  const handleChangeSearchUserText = (e: any, currentText: string) => {
+    setSearchUserInfo((searchUserInfo) => {
+      searchUserInfo.currentText = currentText;
+    });
+  };
+  // chat
+  const [chatUserInfos, setChatUserInfos] =
+    useImmer<ChatSummaryOutputDtoOutput>([]);
+  const [currentUser, setCurrentUser] = useImmer<
+    ChatSummaryOutputDtoOutput[0] | null
+  >(null);
+  const [currentChatHistory, setCurrentChatHistory] =
+    useImmer<GetHistoricalMessagesDtoOutput>([]);
+
+  const handleClickUser = async (user: ChatSummaryOutputDtoOutput[0]) => {
+    setCurrentUser(user);
+    const historicalMessages = await chatControllerGetHistoricalMessages(
+      user.partner.id
+    );
+    setCurrentChatHistory(historicalMessages);
+  };
+
+  useEffect(() => {
+    chatControllerGetChatSummaries().then((result) => {
+      setChatUserInfos(result);
+    });
+  }, []);
   return (
     <Stack
       direction="row"
@@ -70,32 +105,18 @@ export default function ChatPage() {
           backgroundColor: lighten(theme.palette.primary.light, 0.9),
         })}
       >
-        <Typography variant="h5">Chat</Typography>
-        <TextField
-          variant="outlined"
-          placeholder="search..."
-          size="small"
-          fullWidth
-          sx={{
-            "& .MuiOutlinedInput-root": {
-              borderRadius: 999,
-            },
-          }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  {/* 放置你的搜尋圖標 */}
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            },
-          }}
+        <SearchBlock
+          currentOption={searchUserInfo.currectUser}
+          options={searchUserInfo.userOptions}
+          isLoading={searchUserInfo.isLoading}
+          onSectedUser={handleSectedUser}
+          onSearchUsers={handleSearchUsers}
+          onChangValue={handleChangeSearchUserText}
         />
         <Divider></Divider>
-        <UserList users={users} />
+        <UserList users={chatUserInfos} onClickUser={handleClickUser} />
       </Stack>
-      <MessageBox user={currentUser} messages={currentChatHistory} />
+      <MessageBox userInfo={currentUser} messages={currentChatHistory} />
     </Stack>
   );
 }

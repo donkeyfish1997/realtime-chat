@@ -8,21 +8,17 @@ import {
   Typography,
 } from "@mui/material";
 import { getRendomAvatorUrl } from "utils/stringToHashNumber";
-import type { Message } from "~/pages/type";
 import MessageBubble from "./MessageBubble";
-type User = {
-  id: string;
-  name?: string;
-  email: string;
-  img?: string;
-  lastMessage?: string;
-};
+import type {
+  ChatSummaryOutputDtoOutput,
+  GetHistoricalMessagesDtoOutput,
+} from "api/models";
 export default function MessageBox({
-  user,
+  userInfo,
   messages,
 }: {
-  user: User | null;
-  messages: Message[];
+  userInfo: ChatSummaryOutputDtoOutput[0] | null;
+  messages: GetHistoricalMessagesDtoOutput;
 }) {
   return (
     <>
@@ -36,12 +32,11 @@ export default function MessageBox({
           borderRadius: "5px",
         })}
       >
-        {user && (
+        {userInfo && (
           <>
             <Stack
               direction="row"
               spacing={2}
-              // padding={1}
               sx={(theme) => ({
                 height: "70px",
                 borderRadius: "5px",
@@ -49,10 +44,15 @@ export default function MessageBox({
               })}
             >
               <Avatar
-                src={user.img ?? getRendomAvatorUrl(user.email)}
+                src={
+                  userInfo.partner.image ??
+                  getRendomAvatorUrl(userInfo.partner.id)
+                }
                 sx={{ height: "100%", width: "auto", aspectRatio: "1 / 1" }}
               ></Avatar>
-              <Typography alignContent={"center"}>{user.email}</Typography>
+              <Typography alignContent={"center"}>
+                {userInfo.partner.name}
+              </Typography>
             </Stack>
             <Divider></Divider>
             <Stack
@@ -63,7 +63,13 @@ export default function MessageBox({
               }}
             >
               {messages.map((message) => (
-                <MessageBubble messageInfo={message} />
+                <MessageBubble
+                  userImg={
+                    userInfo.partner.image ??
+                    getRendomAvatorUrl(userInfo.partner.id)
+                  }
+                  messageInfo={message}
+                />
               ))}
             </Stack>
 

@@ -1,34 +1,55 @@
 import { Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
-import { ChatService, ChatSummary } from './chat.service';
+import { ChatService } from './chat.service';
 import { type Request } from 'express';
+import {
+  ChatSummaryOutputDto,
+  GetChatSummariesParamDto,
+  GetHistoricalMessagesDto,
+  GetHistoricalMessagesParamDto,
+  GetHistoricalMessagesQueryDto,
+  MarkConversationAsReadParamDto,
+} from './dto/chat.dto';
+import { ZodResponse } from 'nestjs-zod';
 
 @Controller('chat')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
+  @ZodResponse({ type: ChatSummaryOutputDto })
   @Get('summaries')
-  async getChatSummaries(@Req() req: Request): Promise<ChatSummary[]> {
-    return this.chatService.fetchInitialChatSummary(req.user?.id as string);
+  async getChatSummaries(
+    @Req() req: Request,
+    @Param() { course: _course }: GetChatSummariesParamDto,
+  ): Promise<ChatSummaryOutputDto> {
+    const course = _course
+      ? { ..._course, lastMessageTime: new Date(_course.lastMessageTime) }
+      : undefined;
+    return this.chatService.fetchInitialChatSummary(
+      req.user?.id as string,
+      course,
+    );
   }
 
   @Get('messages/:targetUserId')
-  getMessages(
+  @ZodResponse({ type: GetHistoricalMessagesDto })
+  async getHistoricalMessages(
     @Req() req: Request,
-    @Param('targetUserId') targetUserId: string,
-    @Query('cursorLastTime') cursorLastTime: Date, // 用於分頁的游標
+    @Param() { targetUserId }: GetHistoricalMessagesParamDto,
+    @Query() { cursorLastTime }: GetHistoricalMessagesQueryDto,
   ) {
-    // 呼叫 Service 查詢資料庫，獲取歷史訊息
-    return this.chatService.fetchHistoricalMessages(
+    const messages = await this.chatService.getHistoricalMessages(
       req.user?.id as string,
       targetUserId,
-      cursorLastTime,
+      cursorLastTime ? new Date(cursorLastTime) : undefined,
     );
+    console.log('messagesmessagesmessages', messages);
+    return messages;
   }
 
   @Post('read/:targetUserId')
   async markConversationAsRead(
     @Req() req: Request,
-    @Param('targetUserId') targetUserId: string,
+    @Param() { targetUserId }: MarkConversationAsReadParamDto,
   ) {
     // 呼叫 Service 更新資料庫的 status 欄位，並清零未讀計數
     return this.chatService.markMessagesAsRead(

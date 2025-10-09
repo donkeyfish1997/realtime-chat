@@ -23,7 +23,9 @@ const EmailChangeForm = () => {
   const { user, updateEmail } = useAuth();
   const { notify } = useNotification();
 
-  const handleSendResetEmail = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSendResetEmail = async (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ) => {
     e.preventDefault();
 
     try {

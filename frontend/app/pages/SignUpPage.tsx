@@ -10,6 +10,8 @@ import { authControllerRegister } from "api/auth";
 export default function SignUpPage() {
   const auth = useAuth();
   const navigate = useNavigate();
+  const name = useRef<HTMLInputElement>(null);
+  const [nameErrorMessage, setNameErrorMessage] = useState("");
   const email = useRef<HTMLInputElement>(null);
   const [emailErrorMessage, setEmailErrorMessage] = useState("");
   const password = useRef<HTMLInputElement>(null);
@@ -17,6 +19,12 @@ export default function SignUpPage() {
 
   const validateInputs = async () => {
     let isValid = true;
+    if (!(name.current && name.current?.value.length > 3)) {
+      setNameErrorMessage("name must more than 3 letter");
+      isValid = false;
+    } else {
+      setNameErrorMessage("");
+    }
     if (!email.current?.value || !/\S+@\S+\.\S+/.test(email.current?.value)) {
       setEmailErrorMessage("Please enter a valid email address.");
       isValid = false;
@@ -33,6 +41,7 @@ export default function SignUpPage() {
     if (!isValid) return;
     try {
       const user = await authControllerRegister({
+        name: name.current?.value as string,
         email: email.current?.value as string,
         password: password.current?.value as string,
       });
@@ -74,6 +83,25 @@ export default function SignUpPage() {
             gap: 2,
           }}
         >
+          <FormControl>
+            <FormLabel htmlFor="name">Name</FormLabel>
+            <TextField
+              inputRef={name}
+              error={!!nameErrorMessage}
+              helperText={nameErrorMessage}
+              slotProps={{ htmlInput: { onKeyDown: handleEnter } }}
+              id="name"
+              type="text"
+              name="name"
+              placeholder="your name"
+              autoComplete="name"
+              autoFocus
+              required
+              fullWidth
+              variant="outlined"
+              color={nameErrorMessage ? "error" : "primary"}
+            />
+          </FormControl>
           <FormControl>
             <FormLabel htmlFor="email">Email</FormLabel>
             <TextField

@@ -17,7 +17,7 @@ datasource db {
 
 model User {
   id            String    @id @default(cuid())
-  name          String?
+  name          String
   email         String   @unique // 用於 Email/密碼登入
   emailVerified DateTime? // 用於驗證電子郵件
   image         String?   // 頭像 URL
@@ -26,8 +26,8 @@ model User {
   sessions      Session[] // 關聯：一個 User 可以有多個 Session (多個登入裝置)
   credential    Credential? 
   verificationToken  VerificationToken[]
-  senderUser    Message[]   @relation("SentMessages") 
-  recipientUser  Message[]  @relation("ReceivedMessages") 
+  senderUser    Message[]   
+  
 
 
   @@map("users") // 習慣將表名設定為複數
@@ -114,14 +114,13 @@ enum MessageStatus {
 model Message {
   id                String    @id @default(cuid())
   sender_id         String
-  recipient_id      String
   content           String
   created_at        DateTime
   status            MessageStatus
   conversation_id   String
 
-  senderUser        User  @relation("SentMessages", fields: [sender_id], references: [id], onDelete: Cascade)
-  recipientUser     User  @relation("ReceivedMessages", fields: [recipient_id], references: [id], onDelete: Cascade)
+  senderUser        User  @relation( fields: [sender_id], references: [id], onDelete: Cascade)
+  
   @@map("messages")
 }
 // content	TEXT	訊息的實際內容。	無

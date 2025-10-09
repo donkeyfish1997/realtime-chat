@@ -1,56 +1,31 @@
 import { Injectable } from '@nestjs/common';
 import { Server as SocketIoServer } from 'socket.io';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Prisma, type Message } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import {
   ClientToServerEvents,
   InterServerEvents,
   ServerToClientEvents,
   SocketData,
 } from '../types/socket.types';
+import { ChatSummary, EmitEvent, Message } from './dto/chat.dto';
+import { UserService } from 'src/user/user.service';
 type Server = SocketIoServer<
   ClientToServerEvents,
   ServerToClientEvents,
   InterServerEvents,
   SocketData
 >;
-export interface ChatSummary {
-  // 1. 對話資訊
-  conversationId: string; // 對話的唯一 ID (例如 "userA-userB")
-  partner: {
-    // 對方使用者的資訊
-    id: string; // 對方使用者的 ID
-    name: string | null; // 對方使用者的名稱
-    image: string | null; // 對方使用者的頭像 URL
-  };
-
-  // 2. 狀態資訊
-  unreadCount: number; // 該對話的未讀訊息數量 (重要)
-  isOnline: boolean; // 對方使用者目前是否在線 (可選，但常見)
-
-  // 3. 最新訊息的摘要
-  lastMessage: {
-    id: string;
-    content: string; // 最新訊息的內容摘要 (例如前 50 個字)
-    sentByMe: boolean; // 最新訊息是否由當前使用者發送
-    createdAt: Date;
-    status: 'SENT' | 'DELIVERED' | 'READ'; // 最新訊息的狀態
-  } | null; // 如果是新對話，可能為 null
-}
-enum EmitEvent {
-  MESSAGE_SEND = 'message_send',
-  MESSAGE_ERROR = 'message_error',
-  MESSAGE_READ = 'message_read',
-  RECEIVE_PRIVATE_MESSAGE = 'receive_private_message',
-  USER_READED = 'user_readed',
-}
 
 @Injectable()
 export class ChatService {
   private server: Server;
-  private prisma: PrismaService;
   private userSocketMap: Map<string, Set<string>> = new Map();
   private socketUserMap: Map<string, string> = new Map();
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly userService: UserService,
+  ) {}
 
   afterInit(server: Server) {
     if (!this.server) {
@@ -109,7 +84,6 @@ export class ChatService {
       data: {
         conversation_id: conversationId,
         sender_id: senderId,
-        recipient_id: targetUserId,
         content: message,
         status: 'SENT', // 初始狀態必須是 SENT
         created_at: now,
@@ -149,8 +123,8 @@ export class ChatService {
 
   async fetchInitialChatSummary(
     userId: string,
-    limit: number = 20,
     cursor?: { lastMessageTime: Date; conversationId: string },
+    limit: number = 20,
   ): Promise<ChatSummary[]> {
     // 1. 定義基礎查詢
     let query = Prisma.sql`
@@ -159,8 +133,6 @@ export class ChatService {
       MAX(created_at) AS "lastMessageTime"
     FROM 
       messages 
-    WHERE 
-      sender_id = ${userId} OR recipient_id = ${userId} 
     GROUP BY 
       conversation_id
   `;
@@ -189,7 +161,6 @@ export class ChatService {
       "conversationId" ASC
     LIMIT ${limit}
   `;
-
     // 4. 執行查詢 (Prisma 會在內部安全地合併所有參數)
     const conversationInfos =
       await this.prisma.$queryRaw<
@@ -208,10 +179,6 @@ export class ChatService {
       where: {
         OR: latestMessageConditions, // 批量查詢這 20 條訊息
       },
-      include: {
-        senderUser: true,
-        recipientUser: true,
-      },
     });
 
     // 2B: 獲取所有未讀計數
@@ -219,7 +186,7 @@ export class ChatService {
       by: ['conversation_id'],
       where: {
         conversation_id: { in: conversationIds },
-        recipient_id: userId,
+        sender_id: { not: userId },
         status: { not: 'READ' },
       },
       _count: {
@@ -238,11 +205,13 @@ export class ChatService {
       if (!latestMessage) continue;
       const notReadCount = unreadMap.get(info.conversationId) ?? 0;
 
-      // 判斷對方是誰
-      const isSender = latestMessage.sender_id === userId;
-      const partnerUser = isSender
-        ? latestMessage.recipientUser
-        : latestMessage.senderUser;
+      const isSendByBe = latestMessage.sender_id === userId;
+      const partnerUserId = isSendByBe
+        ? this.getPartnerId(info.conversationId, userId)
+        : latestMessage.sender_id;
+      const partnerUser = await this.userService.user({ id: partnerUserId });
+      if (!partnerUser)
+        throw new Error(`can't find user, userId = ${partnerUserId}`);
 
       summaries.push({
         conversationId: info.conversationId,
@@ -256,8 +225,8 @@ export class ChatService {
         lastMessage: {
           id: latestMessage.id,
           content: latestMessage.content,
-          sentByMe: isSender,
-          createdAt: latestMessage.created_at,
+          sentByMe: isSendByBe,
+          createdAt: latestMessage.created_at.toTimeString(),
           status: latestMessage.status,
         },
       });
@@ -267,7 +236,7 @@ export class ChatService {
     return summaries;
   }
 
-  async fetchHistoricalMessages(
+  async getHistoricalMessages(
     senderId: string,
     targetUserId: string,
     cursorLastTime?: Date,
@@ -287,7 +256,10 @@ export class ChatService {
       orderBy: { created_at: 'desc' },
       take: 50,
     });
-    return messages;
+    return messages.map((m) => ({
+      ...m,
+      created_at: m.created_at.toTimeString(),
+    }));
   }
 
   async markMessagesAsRead(
@@ -298,7 +270,6 @@ export class ChatService {
       data: { status: 'READ' },
       where: {
         sender_id: targetUserId,
-        recipient_id: readerId,
         status: { not: 'READ' },
       },
     });
@@ -326,5 +297,20 @@ export class ChatService {
       return `${userId}_${userId2}`;
     }
     return `${userId2}_${userId}`;
+  }
+  private getPartnerId(conversationId: string, userId: string): string {
+    let partnerId: string | undefined;
+    if (conversationId.startsWith(userId)) {
+      partnerId = conversationId.replace(userId + '_', '');
+    }
+    if (conversationId.endsWith(userId)) {
+      partnerId = conversationId.replace('_' + userId, '');
+    }
+    if (!partnerId) {
+      throw new Error(
+        `can not fint partnerId from conversationId, ${conversationId}`,
+      );
+    }
+    return partnerId;
   }
 }

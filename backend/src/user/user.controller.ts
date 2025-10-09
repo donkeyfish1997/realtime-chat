@@ -1,7 +1,18 @@
-import { Body, Controller, Param, Patch, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { IdMatchGuard } from 'src/common/guard/id-match.guard';
 import { UserService } from './user.service';
 import {
+  SearchUserQueryDto,
+  SearchUserQueryResDto,
   UpdateUserBaseInfoDto,
   UpdateUserBaseInfoResposneDto,
 } from './dto/user.dto';
@@ -21,14 +32,13 @@ export class UserController {
     @Req() req: Request,
   ): Promise<UpdateUserBaseInfoResposneDto> {
     const userId = req.user?.id as string;
-    console.log('userId', userId);
-    console.log('req.user', req.user);
-    console.log(
-      'this.userService.updateUserBaseInfo',
-      typeof this.userService.updateUserBaseInfo,
-    );
     const user = await this.userService.updateUserBaseInfo(userId, update);
     const emailVerified = user.emailVerified?.toTimeString() ?? null;
     return { ...user, emailVerified };
+  }
+  @ZodResponse({ type: SearchUserQueryResDto })
+  @Get('search')
+  async searchUsers(@Query() { query }: SearchUserQueryDto) {
+    return this.userService.searchUsers(query);
   }
 }

@@ -19,7 +19,7 @@ const loginResponseSchema = z.object({
 });
 export class LoginResponseDto extends createZodDto(loginResponseSchema) {}
 
-const registerSchema = z.object({ email, password });
+const registerSchema = z.object({ name: z.string(), email, password });
 export class RegisterDto extends createZodDto(registerSchema) {}
 
 const verifyEmailSchema = z.object({ token, identifier });
