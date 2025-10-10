@@ -16,14 +16,18 @@ export default defineConfig({
     port: 5173, // 你的前端埠號，例如 5173
     proxy: {
       "/apii": {
-        // 規則: 瀏覽器向 '/api' 發出的所有請求...
-        target: `http://chat_backend:3000`, // ... 都會被轉發到 NestJS 後端
-
-        changeOrigin: true, // 必須: 更改 Host 標頭，讓 NestJS 以為請求來自它自己
-
-        secure: false, // 必須: 確保在 http://localhost 上運作
+        target: `http://chat_backend:3000`,
         rewrite: (path) => {
           return path.replace(/^\/apii/, "");
+        },
+      },
+      "/socket.io": {
+        target: "http://chat_backend:3000",
+        changeOrigin: true, // 改變 origin header
+        ws: true, // 支援 WebSocket 升級
+        //
+        configure: (proxy, options) => {
+          console.log("proxy", proxy);
         },
       },
     },

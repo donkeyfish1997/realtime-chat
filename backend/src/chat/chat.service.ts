@@ -4,17 +4,17 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import {
   ClientToServerEvents,
-  InterServerEvents,
+  // InterServerEvents,
   ServerToClientEvents,
-  SocketData,
+  // SocketData,
 } from '../types/socket.types';
 import { ChatSummary, EmitEvent, Message } from './dto/chat.dto';
 import { UserService } from 'src/user/user.service';
 type Server = SocketIoServer<
   ClientToServerEvents,
-  ServerToClientEvents,
-  InterServerEvents,
-  SocketData
+  ServerToClientEvents
+  // InterServerEvents,
+  // SocketData
 >;
 
 @Injectable()
@@ -40,9 +40,9 @@ export class ChatService {
     (this.userSocketMap.get(userId) as Set<string>).add(socketId);
     // 2. 更新 socketUserMap (用於快速查找和清理)
     this.socketUserMap.set(socketId, userId);
-    console.log(
-      `[ChatService] ${userId} 已連線，總連線數: ${this.userSocketMap.get(userId)?.size ?? 0}`,
-    );
+    // console.log(
+    //   `[ChatService] ${userId} 已連線，總連線數: ${this.userSocketMap.get(userId)?.size ?? 0}`,
+    // );
   }
 
   /**
@@ -72,7 +72,7 @@ export class ChatService {
     senderId: string,
     targetUserId: string,
     message: string,
-  ): Promise<any> {
+  ) {
     const targetSocketIds = this.findSocketsByUserId(targetUserId); // 假設返回 string[]
     const hasActiveConnection = targetSocketIds.length > 0;
     const now = new Date(); // 使用 Date 物件，Prisma 處理更安全
@@ -93,12 +93,12 @@ export class ChatService {
     // 2. 判斷是否有活躍連線，並嘗試即時轉發
     if (hasActiveConnection) {
       // 執行即時轉發
+      console.log(
+        `send userId ${messageRecord.sender_id} :targetSocketIds ${targetSocketIds[0]}`,
+      );
       this.server.to(targetSocketIds).emit(EmitEvent.RECEIVE_PRIVATE_MESSAGE, {
-        id: messageRecord.id, // 帶上 DB ID
-        from: senderId,
-        text: message,
-        timestamp: now.toISOString(),
-        // 這裡可以加上狀態標記，讓客戶端顯示雙勾
+        ...messageRecord,
+        created_at: messageRecord.created_at.toTimeString(),
       });
 
       // 不需要 await，讓主流程盡快返回
@@ -110,15 +110,8 @@ export class ChatService {
         .catch((e) =>
           console.error('Failed to update message status to DELIVERED:', e),
         );
-
-      return { status: 'OK', delivered: true, timestamp: now.toISOString() };
-    } else {
-      return {
-        status: 'FAILED',
-        reason: 'User Offline',
-        timestamp: now.toISOString(),
-      };
     }
+    return messageRecord;
   }
 
   async fetchInitialChatSummary(
@@ -253,7 +246,7 @@ export class ChatService {
 
     const messages = await this.prisma.message.findMany({
       where: whereCondition,
-      orderBy: { created_at: 'desc' },
+      orderBy: { created_at: 'asc' },
       take: 50,
     });
     return messages.map((m) => ({

@@ -7,19 +7,37 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { getRendomAvatorUrl } from "utils/stringToHashNumber";
+import { getRendomAvatorUrl } from "~/utils/getRendomAvatorUrl";
 import MessageBubble from "./MessageBubble";
 import type {
   ChatSummaryOutputDtoOutput,
   GetHistoricalMessagesDtoOutput,
 } from "api/models";
+import { useEffect, useRef, useState } from "react";
 export default function MessageBox({
-  userInfo,
+  user,
+  partner,
   messages,
+  onSendMessage,
 }: {
-  userInfo: ChatSummaryOutputDtoOutput[0] | null;
+  user: { id: string; image: string } | null;
+  partner: { id: string; image: string; name: string } | null;
   messages: GetHistoricalMessagesDtoOutput;
+  onSendMessage: (content: string) => void;
 }) {
+  const [content, setContent] = useState("");
+  // 1. 創建 Ref
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // 2. 監聽 messages 變化並滾動
+  useEffect(() => {
+    // 檢查 Ref 是否存在，然後滾動
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth", // 可選：平滑滾動
+    });
+
+    // 確保當 messages 陣列更新時觸發
+  }, [messages]);
   return (
     <>
       <Stack
@@ -32,7 +50,7 @@ export default function MessageBox({
           borderRadius: "5px",
         })}
       >
-        {userInfo && (
+        {partner && (
           <>
             <Stack
               direction="row"
@@ -44,15 +62,10 @@ export default function MessageBox({
               })}
             >
               <Avatar
-                src={
-                  userInfo.partner.image ??
-                  getRendomAvatorUrl(userInfo.partner.id)
-                }
+                src={partner.image}
                 sx={{ height: "100%", width: "auto", aspectRatio: "1 / 1" }}
               ></Avatar>
-              <Typography alignContent={"center"}>
-                {userInfo.partner.name}
-              </Typography>
+              <Typography alignContent={"center"}>{partner.name}</Typography>
             </Stack>
             <Divider></Divider>
             <Stack
@@ -62,31 +75,59 @@ export default function MessageBox({
                 overflowY: "auto",
               }}
             >
-              {messages.map((message) => (
-                <MessageBubble
-                  userImg={
-                    userInfo.partner.image ??
-                    getRendomAvatorUrl(userInfo.partner.id)
-                  }
-                  messageInfo={message}
-                />
-              ))}
+              {messages.map((message) => {
+                return (
+                  <MessageBubble
+                    key={message.id}
+                    isReDireact={message.sender_id === user?.id ? true : false}
+                    userImg={
+                      message.sender_id === user?.id
+                        ? user.image
+                        : partner.image
+                    }
+                    messageInfo={message}
+                  />
+                );
+              })}
+              <div ref={messagesEndRef} />
             </Stack>
 
             <Stack direction="row" alignItems={"end"} spacing={2}>
               <TextField
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
                 variant="outlined"
                 placeholder="message..."
                 size="small"
                 fullWidth
                 multiline
+                onKeyDown={(e) => {
+                  if (!content && e.key === "Enter") {
+                    e.preventDefault();
+                  } else if (content && e.key === "Enter" && !e.shiftKey) {
+                    onSendMessage(content);
+                    e.preventDefault();
+                    setContent("");
+                  }
+                }}
                 sx={{
                   "& .MuiOutlinedInput-root": {
                     borderRadius: "20px",
                   },
                 }}
               />
-              <Button variant="contained">enter</Button>
+              <Button
+                variant="contained"
+                onClick={(e) => {
+                  if (content) {
+                    onSendMessage(content);
+                    e.preventDefault();
+                    setContent("");
+                  }
+                }}
+              >
+                enter
+              </Button>
             </Stack>
           </>
         )}

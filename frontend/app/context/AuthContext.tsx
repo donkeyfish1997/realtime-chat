@@ -2,7 +2,7 @@ import { createContext, useContext } from "react";
 import type { LoginResponseDtoOutputUser } from "api/models";
 
 export interface AuthContextType {
-  user: LoginResponseDtoOutputUser | null;
+  user: (LoginResponseDtoOutputUser & { image: string }) | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateBaseInfo: (info: { name: string | null; image: string | null }) => {};

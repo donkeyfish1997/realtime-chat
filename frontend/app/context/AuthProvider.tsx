@@ -8,12 +8,14 @@ import {
   authControllerLogout,
 } from "api/auth";
 import {
-  clearAccessToken,
-  setAccessToken,
+  clearAccessTokenAndUser,
+  getAccessTokenAndUser,
+  setAccessTokenAndUser,
   setGetTokenFunction,
 } from "api/custom-instance";
 import { userControllerUpdateUserBaseInfo } from "api/user";
 import { useNotification } from "./NotificationContext";
+import { getRendomAvatorUrl } from "~/utils/getRendomAvatorUrl";
 
 export default function AuthProvider({
   children,
@@ -22,15 +24,20 @@ export default function AuthProvider({
 }) {
   const { notify } = useNotification();
   const navigate = useNavigate();
-  const [user, setUser] = useState<LoginResponseDtoOutputUser | null>(null);
+  const [user, setUser] = useState<
+    (LoginResponseDtoOutputUser & { image: string }) | null
+  >(null);
 
   const login = async (email: string, password: string) => {
     const { user, access_token } = await authControllerLogin({
       email,
       password,
     });
-    setAccessToken(access_token);
-    setUser(user);
+    setAccessTokenAndUser(access_token, user);
+    setUser({
+      ...user,
+      image: user.image ?? getRendomAvatorUrl(user.id),
+    });
     navigate("/");
   };
   const updateBaseInfo = async (info: {
@@ -43,7 +50,10 @@ export default function AuthProvider({
     }
     try {
       const updatedInfo = await userControllerUpdateUserBaseInfo(user.id, info);
-      setUser(updatedInfo);
+      setUser({
+        ...updatedInfo,
+        image: updatedInfo.image ?? getRendomAvatorUrl(user.id),
+      });
     } catch (error) {
       notify("update user error", "error");
     }
@@ -51,7 +61,7 @@ export default function AuthProvider({
 
   const logout = async () => {
     await authControllerLogout();
-    clearAccessToken();
+    clearAccessTokenAndUser();
     setUser(null);
   };
   const updateEmail = (email: string) => {
@@ -62,12 +72,11 @@ export default function AuthProvider({
   };
 
   useEffect(() => {
-    setGetTokenFunction(async () => {
-      // console.log("before authControllerGetAccessToken");
-      const { access_token, user } = await authControllerGetAccessToken();
-      // console.log("after authControllerGetAccessToken");
-      setUser(user);
-      return access_token;
+    getAccessTokenAndUser().then(({ user }) => {
+      setUser({
+        ...user,
+        image: user.image ?? getRendomAvatorUrl(user.id),
+      });
     });
   }, []);
 

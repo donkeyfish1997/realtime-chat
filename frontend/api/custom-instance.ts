@@ -8,27 +8,51 @@ import Axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
 //
 //
 //
+type User = {
+  email: string;
+  name: string;
+  id: string;
+  emailVerified: string | null;
+  image: string | null;
+};
+let userInfo: User | null = null;
 let accessToken: string | null = null;
 let tokenRefreshFn: () => Promise<void> = async () => {
   throw "didn't set tokenRefreshFn";
 };
 let tokenRefreshPromise: Promise<void> | null = null; // Promise 鎖
 
-export function setAccessToken(token: string) {
+export function setAccessTokenAndUser(token: string, user: User) {
   accessToken = token;
+  userInfo = user;
+}
+export async function getAccessTokenAndUser(): Promise<{
+  accessToken: string;
+  user: User;
+}> {
+  if (tokenRefreshPromise) {
+    await tokenRefreshPromise;
+  }
+  if (!accessToken || !userInfo) {
+    throw "fn getAccessTokenAndUser: accessToken or userInfo is null";
+  }
+  return { accessToken, user: userInfo };
 }
 
-export function setGetTokenFunction(fn: () => Promise<string>) {
-  // console.log("setGetTokenFunction");
+export function setGetTokenFunction(
+  fn: () => Promise<{ accessToken: string; user: User }>
+) {
+  console.log("setGetTokenFunction");
   tokenRefreshFn = async () => {
     // console.log("do tokenRefreshFn");
     tokenRefreshPromise = (async function () {
       accessToken = null;
       try {
         // console.log("before do fn");
-        const token = await fn();
+        const { accessToken: token, user } = await fn();
         // console.log("after do fn");
         // console.log("token", token);
+        userInfo = user;
         accessToken = token;
       } catch (e) {
         accessToken = "fail";
@@ -42,8 +66,9 @@ export function setGetTokenFunction(fn: () => Promise<string>) {
   tokenRefreshFn();
 }
 
-export const clearAccessToken = () => {
+export const clearAccessTokenAndUser = () => {
   accessToken = null;
+  userInfo = null;
 };
 
 // --- 核心 Mutator 邏輯 ---

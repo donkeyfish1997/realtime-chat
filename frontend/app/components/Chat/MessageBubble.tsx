@@ -1,19 +1,22 @@
 import { Avatar, Box, lighten, Stack, Typography } from "@mui/material";
 import type { GetHistoricalMessagesDtoOutput } from "api/models";
-import { getRendomAvatorUrl } from "utils/stringToHashNumber";
+import { getRendomAvatorUrl } from "~/utils/getRendomAvatorUrl";
 
 export default function MessageBubble({
   messageInfo,
   userImg,
+  isReDireact = false,
 }: {
   messageInfo: GetHistoricalMessagesDtoOutput[0];
   userImg: string;
+  isReDireact?: boolean;
 }) {
   return (
     <>
       <Stack
-        direction={"row"}
+        direction={isReDireact ? "row-reverse" : "row"}
         alignItems={"end"}
+        alignSelf={isReDireact ? "end" : "start"}
         marginBottom={"3px"}
         spacing={1}
         maxWidth={"80%"}

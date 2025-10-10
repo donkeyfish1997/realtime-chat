@@ -11,10 +11,12 @@ import {
 import { IdMatchGuard } from 'src/common/guard/id-match.guard';
 import { UserService } from './user.service';
 import {
+  SearchUserByIdQuryDto,
   SearchUserQueryDto,
   SearchUserQueryResDto,
   UpdateUserBaseInfoDto,
   UpdateUserBaseInfoResposneDto,
+  UserDto,
 } from './dto/user.dto';
 import type { Request } from 'express';
 import { ZodResponse } from 'nestjs-zod';
@@ -40,5 +42,12 @@ export class UserController {
   @Get('search')
   async searchUsers(@Query() { query }: SearchUserQueryDto) {
     return this.userService.searchUsers(query);
+  }
+  @ZodResponse({ type: UserDto })
+  @Get('searchById')
+  async searchUserById(@Query() { userId }: SearchUserByIdQuryDto) {
+    const user = await this.userService.user({ id: userId });
+    if (!user) throw new Error("can't find user");
+    return user;
   }
 }

@@ -2,7 +2,7 @@
 export type Message = {
   id: string;
   content: string;
-  status: 'SENT' | 'DELIVERED' | 'READ';
+  status: "SENT" | "DELIVERED" | "READ";
   sender_id: string;
   created_at: string;
   conversation_id: string;
@@ -24,7 +24,7 @@ export interface ClientToServerEvents {
   sendPrivateMessage: (
     payload: { targetUserId: string; message: string },
     // 這裡可以選擇性地加入 ack 回調函數的型別
-    callback?: (response: Message | { errorMessage: string }) => void,
+    callback?: (response: Message | { errorMessage: string }) => void
   ) => void;
 
   markAsRead: (payload: { targetUserId: string }) => void;

@@ -19,11 +19,8 @@ async function bootstrap() {
       .setVersion('1.0')
       .addBearerAuth(
         {
-          // 類型：API Key
           type: 'http',
-          // 方案：Bearer
           scheme: 'bearer',
-          // 格式：JWT
           bearerFormat: 'JWT',
           description: '請輸入 JWT Access Token',
           in: 'header',

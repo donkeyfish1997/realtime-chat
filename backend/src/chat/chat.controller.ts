@@ -42,7 +42,6 @@ export class ChatController {
       targetUserId,
       cursorLastTime ? new Date(cursorLastTime) : undefined,
     );
-    console.log('messagesmessagesmessages', messages);
     return messages;
   }
 

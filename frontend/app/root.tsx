@@ -14,7 +14,9 @@ import AuthProvider from "./context/AuthProvider";
 import Navbar from "./components/Navbar";
 import { CssBaseline } from "@mui/material";
 import { PageContainer } from "./components/UI";
+import { init } from "./init";
 
+init();
 export function meta() {
   return [
     { charset: "utf-8" },

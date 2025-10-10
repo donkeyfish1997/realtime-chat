@@ -28,3 +28,7 @@ export class SearchUserQueryResDto extends createZodDto(
     z.object({ id: z.string(), name: z.string(), image: z.url().nullable() }),
   ),
 ) {}
+
+export class SearchUserByIdQuryDto extends createZodDto(
+  z.object({ userId: z.string() }),
+) {}
