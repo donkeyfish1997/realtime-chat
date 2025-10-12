@@ -132,8 +132,6 @@ const ForgetPasswordForm = (props: {
       </Typography>
 
       <Box
-        component="form"
-        noValidate
         sx={{
           display: "flex",
           flexDirection: "column",
@@ -155,7 +153,8 @@ const ForgetPasswordForm = (props: {
             required
             fullWidth
             variant="outlined"
-            // color={emailErrorMessage ? "error" : "primary"}
+            onKeyDown={(e) => e.key === "Enter" && onSearch()}
+            color={emailErrorMessage ? "error" : "primary"}
           />
         </FormControl>
         <Stack

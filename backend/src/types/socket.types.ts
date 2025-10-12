@@ -12,7 +12,7 @@ export interface ServerToClientEvents {
   receive_private_message: (payload: Message) => void;
 
   user_readed: (payload: {
-    conversationId: string;
+    readerId: string;
     // 這裡可以加上 lastReadMessageId
   }) => void;
 

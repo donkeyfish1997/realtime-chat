@@ -119,6 +119,8 @@ export class ChatService {
     cursor?: { lastMessageTime: Date; conversationId: string },
     limit: number = 20,
   ): Promise<ChatSummary[]> {
+    const startPattern = `${userId}\\_%`;
+    const endPattern = `%\\_${userId}`;
     // 1. 定義基礎查詢
     let query = Prisma.sql`
     SELECT 
@@ -126,6 +128,9 @@ export class ChatService {
       MAX(created_at) AS "lastMessageTime"
     FROM 
       messages 
+     WHERE 
+      conversation_id LIKE ${startPattern}
+      OR conversation_id LIKE ${endPattern}
     GROUP BY 
       conversation_id
   `;
@@ -244,7 +249,7 @@ export class ChatService {
 
     const messages = await this.prisma.message.findMany({
       where: whereCondition,
-      orderBy: { created_at: 'asc' },
+      orderBy: { created_at: 'desc' },
       take: 50,
     });
     return messages.map((m) => ({
@@ -268,9 +273,8 @@ export class ChatService {
       return;
     }
     const targetSocketIds = this.findSocketsByUserId(targetUserId);
-    const conversationId = this.getConversationId(readerId, targetUserId);
     targetSocketIds.forEach((socketId) => {
-      this.server.to(socketId).emit(EmitEvent.USER_READED, { conversationId });
+      this.server.to(socketId).emit(EmitEvent.USER_READED, { readerId });
     });
   }
   //

@@ -1,5 +1,6 @@
 import {
   Avatar,
+  Box,
   Button,
   Divider,
   lighten,
@@ -7,13 +8,10 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { getRendomAvatorUrl } from "~/utils/getRendomAvatorUrl";
 import MessageBubble from "./MessageBubble";
-import type {
-  ChatSummaryOutputDtoOutput,
-  GetHistoricalMessagesDtoOutput,
-} from "api/models";
-import { useEffect, useRef, useState } from "react";
+import type { GetHistoricalMessagesDtoOutput } from "api/models";
+import { useEffect, useRef } from "react";
+import { markDateDividers } from "./utils/markDateDividers";
 export default function MessageBox({
   user,
   partner,
@@ -25,21 +23,26 @@ export default function MessageBox({
   messages: GetHistoricalMessagesDtoOutput;
   onSendMessage: (content: string) => void;
 }) {
-  const [content, setContent] = useState("");
+  const contentRef = useRef<HTMLTextAreaElement | null>(null);
   // 1. 創建 Ref
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
+  const partnerChangedRef = useRef(false);
   useEffect(() => {
-    // 檢查 Ref 是否存在，然後滾動
+    partnerChangedRef.current = true;
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "instant",
+    });
+  }, [partner]);
+  useEffect(() => {
+    if (partnerChangedRef.current === true) {
+      partnerChangedRef.current = false;
+      return;
+    }
     messagesEndRef.current?.scrollIntoView({
       behavior: "smooth",
     });
   }, [messages]);
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({
-      // behavior: "smooth",
-    });
-  }, [partner]);
+
   return (
     <>
       <Stack
@@ -67,7 +70,9 @@ export default function MessageBox({
                 src={partner.image}
                 sx={{ height: "100%", width: "auto", aspectRatio: "1 / 1" }}
               ></Avatar>
-              <Typography alignContent={"center"}>{partner.name}</Typography>
+              <Typography alignContent={"center"} variant="h6">
+                {partner.name}
+              </Typography>
             </Stack>
             <Divider></Divider>
             <Stack
@@ -76,49 +81,63 @@ export default function MessageBox({
                 padding: 0,
                 overflowY: "auto",
                 // --- 隱藏滾輪的樣式 ---
-                // 針對 Firefox
                 scrollbarWidth: "none",
-                // 針對 IE/Edge
                 msOverflowStyle: "none",
-                // 針對 WebKit (Chrome, Safari, Opera) 核心
                 "&::-webkit-scrollbar": {
                   display: "none",
                 },
               }}
             >
-              {messages.map((message) => {
-                return (
-                  <MessageBubble
-                    key={message.id}
-                    isReDireact={message.sender_id === user?.id ? true : false}
-                    userImg={
-                      message.sender_id === user?.id
-                        ? user.image
-                        : partner.image
-                    }
-                    messageInfo={message}
-                  />
-                );
-              })}
+              {markDateDividers([...messages].reverse(), new Date()).map(
+                (message) => {
+                  return (
+                    <>
+                      {message.isDateDivider && (
+                        <Box sx={{ textAlign: "center", my: 2 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            {message.dateLabel}
+                          </Typography>
+                        </Box>
+                      )}
+                      <MessageBubble
+                        key={message.id}
+                        isReDireact={
+                          message.sender_id === user?.id ? true : false
+                        }
+                        userImg={
+                          message.sender_id === user?.id
+                            ? user.image
+                            : partner.image
+                        }
+                        messageInfo={message}
+                        showTime={message.shouldShowTime}
+                      />
+                    </>
+                  );
+                }
+              )}
               <div ref={messagesEndRef} />
             </Stack>
 
             <Stack direction="row" alignItems={"end"} spacing={2}>
               <TextField
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
+                inputRef={contentRef}
                 variant="outlined"
                 placeholder="message..."
                 size="small"
                 fullWidth
                 multiline
                 onKeyDown={(e) => {
-                  if (!content && e.key === "Enter") {
+                  if (!contentRef.current && e.key === "Enter") {
                     e.preventDefault();
-                  } else if (content && e.key === "Enter" && !e.shiftKey) {
-                    onSendMessage(content);
+                  } else if (
+                    contentRef.current &&
+                    e.key === "Enter" &&
+                    !e.shiftKey
+                  ) {
+                    onSendMessage(contentRef.current.value);
                     e.preventDefault();
-                    setContent("");
+                    contentRef.current.value = "";
                   }
                 }}
                 sx={{
@@ -130,10 +149,10 @@ export default function MessageBox({
               <Button
                 variant="contained"
                 onClick={(e) => {
-                  if (content) {
-                    onSendMessage(content);
+                  if (contentRef.current?.value) {
+                    onSendMessage(contentRef.current?.value);
                     e.preventDefault();
-                    setContent("");
+                    contentRef.current.value = "";
                   }
                 }}
               >

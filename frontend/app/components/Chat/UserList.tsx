@@ -1,4 +1,4 @@
-import { Stack, Typography, Avatar } from "@mui/material";
+import { Stack, Typography, Avatar, Badge } from "@mui/material";
 import { getRendomAvatorUrl } from "~/utils/getRendomAvatorUrl";
 import type { ChatSummaryOutputDtoOutput } from "api/models";
 import type { ChatInfo } from "./useChatInfo";
@@ -32,14 +32,38 @@ export default function UserList({
             src={user.partner.image ?? getRendomAvatorUrl(user.partner.id)}
             sx={{ height: "100%", width: "auto", aspectRatio: "1 / 1" }}
           ></Avatar>
-          <Stack justifyContent="center">
-            <Typography alignContent={"center"}>{user.partner.name}</Typography>
-            <Typography alignContent={"center"}>
-              {user.messages.length === 0
-                ? ""
-                : user.messages[user.messages.length - 1].content}
+          <Stack flexGrow={1} minWidth="0">
+            <Typography
+              alignContent={"center"}
+              overflow="hidden"
+              textOverflow={"ellipsis"}
+              variant="h6"
+            >
+              {user.partner.name}
+            </Typography>
+            <Typography
+              width={"100%"}
+              alignContent={"center"}
+              overflow="hidden"
+              textOverflow={"ellipsis"}
+              color="textSecondary"
+            >
+              {user.messages.length === 0 ? "" : user.messages[0].content}
             </Typography>
           </Stack>
+          {
+            <Badge
+              color="success"
+              badgeContent={user.unreadCount}
+              anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+              sx={{
+                "& .MuiBadge-badge": {
+                  right: 5,
+                  bottom: 20,
+                },
+              }}
+            ></Badge>
+          }
         </Stack>
       ))}
     </Stack>

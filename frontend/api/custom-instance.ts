@@ -1,4 +1,4 @@
-import Axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
+import Axios, { AxiosError, type AxiosRequestConfig } from "axios";
 //
 //
 //
@@ -8,6 +8,7 @@ import Axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
 //
 //
 //
+Axios;
 type User = {
   email: string;
   name: string;
@@ -42,16 +43,11 @@ export async function getAccessTokenAndUser(): Promise<{
 export function setGetTokenFunction(
   fn: () => Promise<{ accessToken: string; user: User }>
 ) {
-  console.log("setGetTokenFunction");
   tokenRefreshFn = async () => {
-    // console.log("do tokenRefreshFn");
     tokenRefreshPromise = (async function () {
       accessToken = null;
       try {
-        // console.log("before do fn");
         const { accessToken: token, user } = await fn();
-        // console.log("after do fn");
-        // console.log("token", token);
         userInfo = user;
         accessToken = token;
       } catch (e) {
@@ -59,7 +55,6 @@ export function setGetTokenFunction(
       }
     })();
     await tokenRefreshPromise.finally(() => {
-      // console.log("clear tokenRefreshFn");
       tokenRefreshPromise = null;
     });
   };
@@ -85,18 +80,10 @@ AXIOS_INSTANCE.interceptors.request.use(
       return config;
     }
     if (accessToken === null && tokenRefreshPromise === null) {
-      // console.log("if accessToken === null && tokenRefreshPromise === null");
-      tokenRefreshFn();
-    }
-    if (tokenRefreshPromise) {
-      // console.log("tokenRefreshPromise has value awiat tokenRefreshPromise");
-      // 如果已經有其他請求在刷新，則直接等待鎖定 Promise
-      await tokenRefreshPromise;
-      // console.log("await tokenRefreshPromise finish");
-    } else {
       await tokenRefreshFn();
+    } else if (tokenRefreshPromise) {
+      await tokenRefreshPromise;
     }
-
     if (accessToken && accessToken !== "fail") {
       config.headers = config.headers || {};
       // 注入 Bearer Token
@@ -110,16 +97,16 @@ AXIOS_INSTANCE.interceptors.request.use(
 );
 AXIOS_INSTANCE.interceptors.response.use(
   (response) => response,
-  async (error) => {
+  async (error: AxiosError) => {
     const originalRequest = error.config;
-
-    if (error.response?.status !== 401) {
+    if (
+      originalRequest?.isAuth ||
+      error.response?.status !== 401 ||
+      accessToken === "fail" ||
+      !originalRequest
+    ) {
       return Promise.reject(error);
     }
-    if (accessToken === "fail") {
-      return Promise.reject(error);
-    }
-
     if (tokenRefreshPromise) {
       await tokenRefreshPromise;
     }
@@ -133,7 +120,7 @@ export const customInstance = async <T>(
   options?: AxiosRequestConfig
 ): Promise<T> => {
   try {
-    const response: AxiosResponse<T> = await AXIOS_INSTANCE({
+    const response = await AXIOS_INSTANCE({
       ...config,
       ...options,
     });

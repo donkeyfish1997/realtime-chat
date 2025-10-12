@@ -2,16 +2,11 @@ import React, { useState, useMemo, useEffect } from "react";
 import { AuthContext, type AuthContextType } from "./AuthContext";
 import type { LoginResponseDtoOutputUser } from "api/models";
 import { useNavigate } from "react-router";
-import {
-  authControllerGetAccessToken,
-  authControllerLogin,
-  authControllerLogout,
-} from "api/auth";
+import { authControllerLogin, authControllerLogout } from "api/auth";
 import {
   clearAccessTokenAndUser,
   getAccessTokenAndUser,
   setAccessTokenAndUser,
-  setGetTokenFunction,
 } from "api/custom-instance";
 import { userControllerUpdateUserBaseInfo } from "api/user";
 import { useNotification } from "./NotificationContext";
@@ -29,16 +24,24 @@ export default function AuthProvider({
   >(null);
 
   const login = async (email: string, password: string) => {
-    const { user, access_token } = await authControllerLogin({
-      email,
-      password,
-    });
-    setAccessTokenAndUser(access_token, user);
-    setUser({
-      ...user,
-      image: user.image ?? getRendomAvatorUrl(user.id),
-    });
-    navigate("/");
+    try {
+      const { user, access_token } = await authControllerLogin(
+        {
+          email,
+          password,
+        },
+        { isAuth: true }
+      );
+
+      setAccessTokenAndUser(access_token, user);
+      setUser({
+        ...user,
+        image: user.image ?? getRendomAvatorUrl(user.id),
+      });
+      navigate("/");
+    } catch (error) {
+      throw error;
+    }
   };
   const updateBaseInfo = async (info: {
     name: string | null;
@@ -60,7 +63,7 @@ export default function AuthProvider({
   };
 
   const logout = async () => {
-    await authControllerLogout();
+    await authControllerLogout({ isAuth: true });
     clearAccessTokenAndUser();
     setUser(null);
   };
