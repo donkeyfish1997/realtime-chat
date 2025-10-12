@@ -9,39 +9,36 @@ import {
   TextField,
 } from "@mui/material";
 import { Search as SearchIcon } from "@mui/icons-material";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useState } from "react";
 type Option = { name: string; id: string; image: string };
 
 export default function SearchBlock({
-  currentOption,
+  // currentOption,
   options,
   isLoading,
   onSearchUsers,
   onSectedUser,
-  onChangValue,
 }: {
   currentOption: Option | null;
   options: Option[];
   isLoading: boolean;
-  onSectedUser: (e: any, user: Option | null) => Promise<void>;
-  onSearchUsers: () => Promise<void>;
-  onChangValue: (e: any, val: string) => void;
+  onSectedUser: (userId: string) => Promise<void>;
+  onSearchUsers: (query: string) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
-
+  const [query, setQuery] = useState("");
   const handleClose = () => {
     setOpen(false);
   };
 
   return (
     <Autocomplete
-      value={currentOption}
-      onInputChange={onChangValue}
-      onChange={onSectedUser}
+      // value={currentOption}
+      // onChange={onSectedUser}
       open={open}
       onOpen={() => {
         setOpen(true);
-        onSearchUsers();
+        onSearchUsers(query);
       }}
       onClose={handleClose}
       isOptionEqualToValue={(option, value) => option.name === value.name}
@@ -50,7 +47,11 @@ export default function SearchBlock({
       loading={isLoading}
       renderOption={(props, option) => (
         // 1. 使用 ListItem 包裝整個選項，並傳遞 Autocomplete 要求的 props
-        <ListItem {...props} key={option.id}>
+        <ListItem
+          {...props}
+          key={option.id}
+          onClick={() => onSectedUser(option.id)}
+        >
           {/* 2. 放置頭像 */}
           <ListItemAvatar>
             <Avatar src={option.image} alt={option.name} />
@@ -64,6 +65,8 @@ export default function SearchBlock({
         <TextField
           //
           {...params}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           variant="outlined"
           placeholder="search..."
           size="small"

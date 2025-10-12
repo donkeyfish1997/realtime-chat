@@ -29,15 +29,17 @@ export default function MessageBox({
   // 1. 創建 Ref
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // 2. 監聽 messages 變化並滾動
   useEffect(() => {
     // 檢查 Ref 是否存在，然後滾動
     messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth", // 可選：平滑滾動
+      behavior: "smooth",
     });
-
-    // 確保當 messages 陣列更新時觸發
   }, [messages]);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      // behavior: "smooth",
+    });
+  }, [partner]);
   return (
     <>
       <Stack
@@ -73,6 +75,15 @@ export default function MessageBox({
                 flexGrow: 1, // 🚨 關鍵：佔據所有剩餘高度
                 padding: 0,
                 overflowY: "auto",
+                // --- 隱藏滾輪的樣式 ---
+                // 針對 Firefox
+                scrollbarWidth: "none",
+                // 針對 IE/Edge
+                msOverflowStyle: "none",
+                // 針對 WebKit (Chrome, Safari, Opera) 核心
+                "&::-webkit-scrollbar": {
+                  display: "none",
+                },
               }}
             >
               {messages.map((message) => {

@@ -48,7 +48,7 @@ export class ChatGateway
       data.message,
     );
 
-    return { ...message, created_at: message.created_at.toTimeString() };
+    return { ...message, created_at: message.created_at.toISOString() };
   }
   /**
    * 處理客戶端通知伺服器已讀取訊息的事件。

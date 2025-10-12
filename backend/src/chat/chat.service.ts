@@ -98,7 +98,7 @@ export class ChatService {
       );
       this.server.to(targetSocketIds).emit(EmitEvent.RECEIVE_PRIVATE_MESSAGE, {
         ...messageRecord,
-        created_at: messageRecord.created_at.toTimeString(),
+        created_at: messageRecord.created_at.toISOString(),
       });
 
       // 不需要 await，讓主流程盡快返回
@@ -150,7 +150,7 @@ export class ChatService {
     query = Prisma.sql`
     ${query} 
     ORDER BY 
-      "lastMessageTime" DESC,
+      MAX(created_at) DESC,
       "conversationId" ASC
     LIMIT ${limit}
   `;
@@ -159,6 +159,7 @@ export class ChatService {
       await this.prisma.$queryRaw<
         { conversationId: string; lastMessageTime: Date }[]
       >(query);
+    console.log('conversationInfos', conversationInfos);
     const conversationIds = conversationInfos.map((i) => i.conversationId);
 
     // 建立一個複雜的 OR 條件來精確匹配最新的 20 條訊息
@@ -216,11 +217,8 @@ export class ChatService {
           image: partnerUser.image,
         },
         lastMessage: {
-          id: latestMessage.id,
-          content: latestMessage.content,
-          sentByMe: isSendByBe,
-          createdAt: latestMessage.created_at.toTimeString(),
-          status: latestMessage.status,
+          ...latestMessage,
+          created_at: latestMessage.created_at.toISOString(),
         },
       });
     }
@@ -251,7 +249,7 @@ export class ChatService {
     });
     return messages.map((m) => ({
       ...m,
-      created_at: m.created_at.toTimeString(),
+      created_at: m.created_at.toISOString(),
     }));
   }
 

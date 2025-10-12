@@ -35,7 +35,7 @@ export class UserController {
   ): Promise<UpdateUserBaseInfoResposneDto> {
     const userId = req.user?.id as string;
     const user = await this.userService.updateUserBaseInfo(userId, update);
-    const emailVerified = user.emailVerified?.toTimeString() ?? null;
+    const emailVerified = user.emailVerified?.toISOString() ?? null;
     return { ...user, emailVerified };
   }
   @ZodResponse({ type: SearchUserQueryResDto })

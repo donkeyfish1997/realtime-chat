@@ -2,7 +2,16 @@ import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { MessageStatus } from '@prisma/client';
 
-const ChatSummary = z.object({
+const message = z.object({
+  id: z.string(),
+  content: z.string(),
+  status: z.enum(MessageStatus),
+  sender_id: z.string(),
+  created_at: z.string(),
+  conversation_id: z.string(),
+});
+
+const chatSummary = z.object({
   conversationId: z.string(),
   partner: z.object({
     id: z.string(), // 對方使用者的 ID
@@ -11,15 +20,7 @@ const ChatSummary = z.object({
   }),
   unreadCount: z.number(), // 該對話的未讀訊息數量 (重要)
   isOnline: z.boolean(), // 對方使用者目前是否在線 (可選，但常見)
-  lastMessage: z
-    .object({
-      id: z.string(),
-      content: z.string(), // 最新訊息的內容摘要 (例如前 50 個字)
-      sentByMe: z.boolean(), // 最新訊息是否由當前使用者發送
-      createdAt: z.string(),
-      status: z.enum(['SENT', 'DELIVERED', 'READ']), // 最新訊息的狀態
-    })
-    .nullable(),
+  lastMessage: message,
 });
 //
 export enum EmitEvent {
@@ -29,14 +30,6 @@ export enum EmitEvent {
   RECEIVE_PRIVATE_MESSAGE = 'receive_private_message',
   USER_READED = 'user_readed',
 }
-const message = z.object({
-  id: z.string(),
-  content: z.string(),
-  status: z.enum(MessageStatus),
-  sender_id: z.string(),
-  created_at: z.string(),
-  conversation_id: z.string(),
-});
 
 export class GetChatSummariesParamDto extends createZodDto(
   z.object({
@@ -48,8 +41,8 @@ export class GetChatSummariesParamDto extends createZodDto(
       .optional(),
   }),
 ) {}
-export type ChatSummary = z.infer<typeof ChatSummary>;
-const chatSummaryOutputSchema = z.array(ChatSummary);
+export type ChatSummary = z.infer<typeof chatSummary>;
+const chatSummaryOutputSchema = z.array(chatSummary);
 export class ChatSummaryOutputDto extends createZodDto(
   chatSummaryOutputSchema,
 ) {}
