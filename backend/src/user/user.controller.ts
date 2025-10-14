@@ -20,7 +20,9 @@ import {
 } from './dto/user.dto';
 import type { Request } from 'express';
 import { ZodResponse } from 'nestjs-zod';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiBearerAuth()
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}

@@ -11,6 +11,9 @@ import {
 } from './dto/chat.dto';
 import { ZodResponse } from 'nestjs-zod';
 
+import { ApiBearerAuth } from '@nestjs/swagger';
+
+@ApiBearerAuth()
 @Controller('chat')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}

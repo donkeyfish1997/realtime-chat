@@ -1,19 +1,16 @@
-export interface UserSession {
-  token: string;
-  loginTime: number;
+type RefreshTokenHash = string;
+type UserId = string;
+export interface VerificationToken {
+  userId: string;
+  tokenHash: string;
 }
-export interface PostData {
-  title: string;
-  views: number;
-}
-export interface UserProfile {
-  name: string;
-  email: string;
-}
+
 export interface RedisKeyMap {
-  'user.session': UserSession;
-  'post.data': PostData;
-  'user.profile': UserProfile;
+  'email.verify:identifer': VerificationToken; //identifer
+  'password.reset:identifer': VerificationToken; //identifer
+  'change.email:identifer': VerificationToken; //identifer
+  'active.refresh.tokenHash:userId': RefreshTokenHash;
+  'refresh:tokenHash': UserId;
 }
 
 export type KeyPrefix = keyof RedisKeyMap;

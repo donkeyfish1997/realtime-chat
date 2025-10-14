@@ -17,21 +17,14 @@ async function bootstrap() {
       .setTitle('Example API')
       .setDescription('Example API description')
       .setVersion('1.0')
-      .addBearerAuth(
-        {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          description: '請輸入 JWT Access Token',
-          in: 'header',
-        },
-        'access-token', // <--- 安全定義的名稱 (Security Definition Name)
-      )
-      .addCookieAuth(
-        'refresh_token', // <--- Cookie 的鍵名 (Key Name)
-        { type: 'http', description: '用於 Refresh Token 的 Cookie' },
-        'refresh-cookie-scheme', // <--- 安全定義的名稱
-      )
+      .addBearerAuth({
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: '請輸入 JWT Access Token',
+        in: 'header',
+      })
+
       .build(),
   );
 

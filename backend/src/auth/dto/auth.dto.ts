@@ -8,7 +8,7 @@ const password = z.string().min(8).trim().nonempty();
 const newPassword = password;
 const identifier = z.email();
 const token = z.string();
-const type = z.enum(['EMAIL_VERIFY', 'PASSWORD_RESET', 'CHANGE_EMAIL']);
+const type = z.enum(['email_verify', 'password_reset', 'change_email']);
 
 const loginSchema = z.object({ email, password });
 export class LoginDto extends createZodDto(loginSchema) {}
