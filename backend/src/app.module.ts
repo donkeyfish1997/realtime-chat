@@ -9,9 +9,10 @@ import { APP_GUARD, APP_INTERCEPTOR, APP_PIPE, APP_FILTER } from '@nestjs/core';
 import { ZodValidationPipe, ZodSerializerInterceptor } from 'nestjs-zod';
 import { HttpExceptionFilter } from './common/filter/http-exception.filter';
 import { ChatModule } from './chat/chat.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
-  imports: [PrismaModule, UserModule, AuthModule, ChatModule],
+  imports: [PrismaModule, UserModule, AuthModule, ChatModule, RedisModule],
   controllers: [AppController],
   providers: [
     AppService,

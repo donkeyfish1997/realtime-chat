@@ -24,6 +24,7 @@ import {
 import { createTOkenAndHash, getTokenHash } from './utilities/tokenAndHash';
 import { Request, Response } from 'express';
 import { RefreshTokenService } from './refresh-token/refresh-token.service';
+import { RedisService } from 'src/redis/redis.service';
 
 type TokenType =
   (typeof VerificationTokenType)[keyof typeof VerificationTokenType];
@@ -35,6 +36,7 @@ export class AuthService {
     private readonly prismaService: PrismaService,
     private readonly refreshTokenService: RefreshTokenService,
     private jwtService: JwtService,
+    private redis: RedisService,
   ) {}
   async register(info: RegisterDto): Promise<User> {
     const existingUser = await this.userService.user({ email: info.email });
