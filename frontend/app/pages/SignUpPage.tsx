@@ -40,11 +40,14 @@ export default function SignUpPage() {
     }
     if (!isValid) return;
     try {
-      const user = await authControllerRegister({
-        name: name.current?.value as string,
-        email: email.current?.value as string,
-        password: password.current?.value as string,
-      });
+      const user = await authControllerRegister(
+        {
+          name: name.current?.value as string,
+          email: email.current?.value as string,
+          password: password.current?.value as string,
+        },
+        { isPublic: true }
+      );
       await auth.login(
         email.current?.value as string,
         password.current?.value as string

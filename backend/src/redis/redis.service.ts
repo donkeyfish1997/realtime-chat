@@ -1,6 +1,13 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { createClient } from 'redis';
-import { KeyPrefix, RedisKeyMap } from './redis.key-map';
+import {
+  StringKeyPrefix,
+  RedisStringKeyMap,
+  StroedSetKeyPrefix,
+  RedisStoredSetKeyMap,
+  HashKeyPrefix,
+  RedisHashKeyMap,
+} from './type';
 
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD; //defined in doker-compose
 if (!REDIS_PASSWORD) throw new Error('can not find env.REDIS_PASSWORD');
@@ -26,10 +33,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * @param value 數據物件 (類型從 KeyMap 推導出來)
    * @param ttlSeconds 可選：過期時間（秒）
    */
-  public async set<P extends KeyPrefix, ID extends string | number>(
+  public async set<P extends StringKeyPrefix, ID extends string | number>(
     prefix: P,
     id: ID,
-    value: RedisKeyMap[P], // 這裡自動限定了 value 必須符合 P 對應的類型
+    value: RedisStringKeyMap[P], // 這裡自動限定了 value 必須符合 P 對應的類型
     ttlSeconds?: number,
   ): Promise<void> {
     const key = `${prefix}:${id}`;
@@ -48,32 +55,120 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * @param id 該記錄的唯一 ID
    * @returns 數據物件 (類型從 KeyMap 推導出來) 或 null
    */
-  public async get<P extends KeyPrefix, ID extends string | number>(
+  public async get<P extends StringKeyPrefix, ID extends string | number>(
     prefix: P,
     id: ID,
-  ): Promise<RedisKeyMap[P] | null> {
+  ): Promise<RedisStringKeyMap[P] | null> {
     const key = `${prefix}:${id}`;
     const value = await this.client.get(key);
-
-    if (!value) {
-      return null;
-    }
-
+    if (!value) return null;
     try {
-      // 將字串解析為 RedisKeyMap[P] 類型
-      return JSON.parse(value) as RedisKeyMap[P];
+      return JSON.parse(value) as RedisStringKeyMap[P];
     } catch (e) {
       console.error(`Error parsing JSON for key ${key}:`, e);
       return null;
     }
   }
-  public async del<P extends KeyPrefix, ID extends string | number>(
+  public async del<P extends StringKeyPrefix, ID extends string | number>(
     prefix: P,
     id: ID,
   ): Promise<number> {
     const key = `${prefix}:${id}`;
     return await this.client.del(key);
   }
+
+  public async zadd<P extends StroedSetKeyPrefix, ID extends string | number>(
+    prefix: P,
+    id: ID,
+    members: { score: number; value: RedisStoredSetKeyMap[P] }[],
+  ): Promise<void> {
+    const key = `${prefix}:${id}`;
+    const inputMembers = members.map((m) => ({
+      score: m.score,
+      value: JSON.stringify(m.value),
+    }));
+    await this.client.zAdd(key, inputMembers);
+  }
+  public async zRange<P extends StroedSetKeyPrefix, ID extends string | number>(
+    prefix: P,
+    id: ID,
+    min: number | '-',
+    max: number | '+',
+    option?: Parameters<typeof this.client.zRange>[3],
+  ): Promise<RedisStoredSetKeyMap[P][]> {
+    const key = `${prefix}:${id}`;
+    const infos = await this.client.zRange(key, min, max, option);
+    return infos.map((i) => JSON.parse(i) as RedisStoredSetKeyMap[P]);
+  }
+  public async zRangeWithScores<
+    P extends StroedSetKeyPrefix,
+    ID extends string | number,
+  >(
+    prefix: P,
+    id: ID,
+
+    min: number | '-inf' | '+inf',
+    max: number | '-inf' | '+inf',
+    option?: Parameters<typeof this.client.zRange>[3],
+  ): Promise<{ value: RedisStoredSetKeyMap[P]; score: number }[]> {
+    const key = `${prefix}:${id}`;
+    const infos = await this.client.zRangeWithScores(key, min, max, option);
+    return infos.map((i) => ({
+      score: i.score,
+      value: JSON.parse(i.value) as RedisStoredSetKeyMap[P],
+    }));
+  }
+  public async hSet<P extends HashKeyPrefix, ID extends string | number>(
+    prefix: P,
+    id: ID,
+    fields: Partial<RedisHashKeyMap[P]>,
+  ): Promise<void> {
+    const key = `${prefix}:${id}`;
+    const inputField: Record<string, string | number> = {};
+    for (const key in fields) {
+      inputField[key] = JSON.stringify(fields[key]);
+    }
+    await this.client.hSet(key, inputField);
+  }
+  public async hMGet<
+    P extends HashKeyPrefix,
+    ID extends string | number,
+    F extends keyof RedisHashKeyMap[P],
+    Fields extends F[],
+  >(
+    prefix: P,
+    id: ID,
+    fields: Fields, // 傳入欄位陣列
+  ): Promise<{
+    [K in keyof Fields & number as Fields[K]]:
+      | RedisHashKeyMap[P][Fields[K]]
+      | null;
+  }> {
+    const key = `${prefix}:${id}`;
+    const hmGetResult = await this.client.hmGet(key, fields as string[]);
+    const results: Partial<RedisHashKeyMap[P]> = {};
+    fields.forEach((fieldName, index) => {
+      const value = hmGetResult[index];
+      results[fieldName] = value
+        ? (JSON.parse(value) as RedisHashKeyMap[P][F])
+        : undefined;
+    });
+    return results as unknown as {
+      [K in keyof Fields & number as Fields[K]]:
+        | RedisHashKeyMap[P][Fields[K]]
+        | null;
+    };
+  }
+  public async hIncrby<P extends HashKeyPrefix, ID extends string | number>(
+    prefix: P,
+    id: ID,
+    field: keyof RedisHashKeyMap[P],
+    increment: number,
+  ): Promise<number> {
+    const key = `${prefix}:${id}`;
+    return await this.client.hIncrBy(key, field as string, increment);
+  }
+
   async onModuleInit() {
     try {
       await this.client.connect();

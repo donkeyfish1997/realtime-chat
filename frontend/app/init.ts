@@ -4,7 +4,7 @@ import { setGetTokenFunction } from "api/custom-instance";
 export function init() {
   setGetTokenFunction(async () => {
     const { access_token, user } = await authControllerGetAccessToken({
-      isAuth: true,
+      isPublic: true,
     });
     return { accessToken: access_token, user };
   });

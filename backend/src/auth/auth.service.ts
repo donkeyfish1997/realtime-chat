@@ -6,7 +6,6 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserService } from 'src/user/user.service';
 import bcrypt from 'bcrypt';
-// import crypto from 'crypto';
 import { Prisma, User } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import {
@@ -17,10 +16,9 @@ import {
   VerifyEmailDto,
 } from './dto/auth.dto';
 import { createTokenAndHash, getTokenHash } from './utilities/tokenAndHash';
-import { Request, Response } from 'express';
 import { RefreshTokenService } from './refresh-token/refresh-token.service';
 import { RedisService } from 'src/redis/redis.service';
-import { VerificationToken } from 'src/redis/redis.key-map';
+import { VerificationToken } from 'src/redis/type/redis.string';
 
 type TokenType = 'email_verify' | 'password_reset' | 'change_email';
 const typeMap: Record<

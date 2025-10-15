@@ -47,6 +47,7 @@ export default function UserList({
               overflow="hidden"
               textOverflow={"ellipsis"}
               color="textSecondary"
+              whiteSpace={"nowrap"}
             >
               {user.messages.length === 0 ? "" : user.messages[0].content}
             </Typography>

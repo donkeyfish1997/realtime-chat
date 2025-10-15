@@ -45,7 +45,6 @@ export function setGetTokenFunction(
 ) {
   tokenRefreshFn = async () => {
     tokenRefreshPromise = (async function () {
-      accessToken = null;
       try {
         const { accessToken: token, user } = await fn();
         userInfo = user;
@@ -76,7 +75,7 @@ export const AXIOS_INSTANCE = Axios.create({
 // 設定請求攔截器 (Interceptor) 來自動注入 Bearer Token
 AXIOS_INSTANCE.interceptors.request.use(
   async (config) => {
-    if (config.url?.includes("auth")) {
+    if (config.isPublic) {
       return config;
     }
     if (accessToken === null && tokenRefreshPromise === null) {
@@ -84,11 +83,8 @@ AXIOS_INSTANCE.interceptors.request.use(
     } else if (tokenRefreshPromise) {
       await tokenRefreshPromise;
     }
-    if (accessToken && accessToken !== "fail") {
-      config.headers = config.headers || {};
-      // 注入 Bearer Token
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${accessToken}`;
     return config;
   },
   (error) => {
@@ -100,7 +96,7 @@ AXIOS_INSTANCE.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config;
     if (
-      originalRequest?.isAuth ||
+      originalRequest?.isPublic ||
       error.response?.status !== 401 ||
       accessToken === "fail" ||
       !originalRequest

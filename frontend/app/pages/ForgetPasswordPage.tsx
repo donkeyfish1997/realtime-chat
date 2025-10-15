@@ -43,7 +43,10 @@ export default function ForgetPasswordPage() {
     if (email.current.value.length < 4)
       return setEmailErrorMessage("please enter correct email.");
     try {
-      await authControllerRequestPasswordReset({ email: email.current.value });
+      await authControllerRequestPasswordReset(
+        { email: email.current.value },
+        { isPublic: true }
+      );
       setSearchedEmail(email.current.value);
       notify("(develope) token: " + "aa112233");
       setPhase("verifyToken");
@@ -66,11 +69,14 @@ export default function ForgetPasswordPage() {
       return;
     }
 
-    await authControllerResetPassword({
-      token: (token.current as HTMLInputElement).value,
-      identifier: searchedEmail as string,
-      newPassword: (newPassword.current as HTMLInputElement).value,
-    })
+    await authControllerResetPassword(
+      {
+        token: (token.current as HTMLInputElement).value,
+        identifier: searchedEmail as string,
+        newPassword: (newPassword.current as HTMLInputElement).value,
+      },
+      { isPublic: true }
+    )
       .then(() => {
         notify("reset password success");
         navigate("/");

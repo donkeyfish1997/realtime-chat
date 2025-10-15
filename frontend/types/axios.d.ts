@@ -7,6 +7,6 @@ declare module "axios" {
     /**
      * 自訂身份驗證標誌。
      */
-    isAuth?: boolean; // 建議使用更簡單的布林值，方便傳遞
+    isPublic?: boolean; // 建議使用更簡單的布林值，方便傳遞
   }
 }

@@ -30,7 +30,7 @@ export default function AuthProvider({
           email,
           password,
         },
-        { isAuth: true }
+        { isPublic: true }
       );
 
       setAccessTokenAndUser(access_token, user);
@@ -63,7 +63,7 @@ export default function AuthProvider({
   };
 
   const logout = async () => {
-    await authControllerLogout({ isAuth: true });
+    await authControllerLogout();
     clearAccessTokenAndUser();
     setUser(null);
   };

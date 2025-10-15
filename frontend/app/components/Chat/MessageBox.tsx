@@ -62,8 +62,6 @@ export default function MessageBox({
               spacing={2}
               sx={(theme) => ({
                 height: "70px",
-                borderRadius: "5px",
-                "&:hover": { backgroundColor: theme.palette.action.hover },
               })}
             >
               <Avatar

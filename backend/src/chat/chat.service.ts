@@ -4,18 +4,13 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import {
   ClientToServerEvents,
-  // InterServerEvents,
   ServerToClientEvents,
-  // SocketData,
 } from '../types/socket.types';
 import { ChatSummary, EmitEvent, Message } from './dto/chat.dto';
 import { UserService } from 'src/user/user.service';
-type Server = SocketIoServer<
-  ClientToServerEvents,
-  ServerToClientEvents
-  // InterServerEvents,
-  // SocketData
->;
+import { RedisService } from 'src/redis/redis.service';
+import { LastMessage } from 'src/redis/type';
+type Server = SocketIoServer<ClientToServerEvents, ServerToClientEvents>;
 
 @Injectable()
 export class ChatService {
@@ -25,6 +20,7 @@ export class ChatService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userService: UserService,
+    private readonly redis: RedisService,
   ) {}
 
   afterInit(server: Server) {
@@ -40,9 +36,6 @@ export class ChatService {
     (this.userSocketMap.get(userId) as Set<string>).add(socketId);
     // 2. 更新 socketUserMap (用於快速查找和清理)
     this.socketUserMap.set(socketId, userId);
-    // console.log(
-    //   `[ChatService] ${userId} 已連線，總連線數: ${this.userSocketMap.get(userId)?.size ?? 0}`,
-    // );
   }
 
   /**
@@ -111,6 +104,34 @@ export class ChatService {
           console.error('Failed to update message status to DELIVERED:', e),
         );
     }
+    this.redis
+      .zadd('chat.order:userId', senderId, [
+        { value: conversationId, score: now.getTime() },
+      ])
+      .catch(() => {});
+    this.redis
+      .zadd('chat.order:userId', targetUserId, [
+        { value: conversationId, score: now.getTime() },
+      ])
+      .catch(() => {});
+    this.redis
+      .hSet('base.conversation.info:conversationId', conversationId, {
+        lastMessage: {
+          ...messageRecord,
+          created_at: messageRecord.created_at.toISOString(),
+        },
+      })
+      .catch(() => {});
+
+    this.redis
+      .hIncrby(
+        'base.conversation.info:conversationId',
+        conversationId,
+        `unreadCount:${targetUserId}`,
+        1,
+      )
+      .catch(() => {});
+
     return messageRecord;
   }
 
@@ -119,116 +140,37 @@ export class ChatService {
     cursor?: { lastMessageTime: Date; conversationId: string },
     limit: number = 20,
   ): Promise<ChatSummary[]> {
-    const startPattern = `${userId}\\_%`;
-    const endPattern = `%\\_${userId}`;
-    // 1. 定義基礎查詢
-    let query = Prisma.sql`
-    SELECT 
-      conversation_id as "conversationId",
-      MAX(created_at) AS "lastMessageTime"
-    FROM 
-      messages 
-     WHERE 
-      conversation_id LIKE ${startPattern}
-      OR conversation_id LIKE ${endPattern}
-    GROUP BY 
-      conversation_id
-  `;
-
-    // 2. 安全地加入 HAVING 條件和游標參數
-    if (cursor) {
-      // 🔴 使用 Prisma.sql 傳遞游標參數，確保安全
-      const havingCondition = Prisma.sql`
-      HAVING 
-        MAX(created_at) < ${cursor.lastMessageTime}  
-        OR 
-        (
-          MAX(created_at) = ${cursor.lastMessageTime} 
-          AND conversation_id > ${cursor.conversationId}
-        )
-    `;
-      // 將 HAVING 條件附加到主查詢
-      query = Prisma.sql`${query} ${havingCondition}`;
-    }
-
-    // 3. 安全地加入 ORDER BY 和 LIMIT
-    query = Prisma.sql`
-    ${query} 
-    ORDER BY 
-      MAX(created_at) DESC,
-      "conversationId" ASC
-    LIMIT ${limit}
-  `;
-    // 4. 執行查詢 (Prisma 會在內部安全地合併所有參數)
-    const conversationInfos =
-      await this.prisma.$queryRaw<
-        { conversationId: string; lastMessageTime: Date }[]
-      >(query);
-    console.log('conversationInfos', conversationInfos);
-    const conversationIds = conversationInfos.map((i) => i.conversationId);
-
-    // 建立一個複雜的 OR 條件來精確匹配最新的 20 條訊息
-    const latestMessageConditions = conversationInfos.map((c) => ({
-      AND: [
-        { conversation_id: c.conversationId },
-        { created_at: c.lastMessageTime },
-      ],
-    }));
-    const latestMessages = await this.prisma.message.findMany({
-      where: {
-        OR: latestMessageConditions, // 批量查詢這 20 條訊息
-      },
-    });
-
-    // 2B: 獲取所有未讀計數
-    const unreadCounts = await this.prisma.message.groupBy({
-      by: ['conversation_id'],
-      where: {
-        conversation_id: { in: conversationIds },
-        sender_id: { not: userId },
-        status: { not: 'READ' },
-      },
-      _count: {
-        id: true,
-      },
-    });
-    const unreadMap = new Map(
-      unreadCounts.map((u) => [u.conversation_id, u._count.id]),
+    const conversationOrderInfos = await this.getOrderConversationIds(
+      userId,
+      cursor,
+      limit,
     );
-    const summaryMap = new Map(
-      latestMessages.map((m) => [m.conversation_id, m]),
+    const promiseSummaries: Promise<ChatSummary>[] = conversationOrderInfos.map(
+      async ({ conversationId }) => {
+        const { message, unreadCount } =
+          await this.getLastMessageAndUnReadCount(userId, conversationId);
+        const isSendByBe = message.sender_id === userId;
+        const partnerUserId = isSendByBe
+          ? this.getPartnerId(conversationId, userId)
+          : message.sender_id;
+        const partnerUser = await this.userService.user({ id: partnerUserId });
+        if (!partnerUser)
+          throw new Error(`can't find user, userId = ${partnerUserId}`);
+        return {
+          conversationId: conversationId,
+          unreadCount,
+          isOnline: this.findSocketsByUserId(partnerUser.id).length > 0,
+          partner: {
+            id: partnerUser.id,
+            name: partnerUser.name,
+            image: partnerUser.image,
+          },
+          lastMessage: message,
+        };
+      },
     );
-    const summaries: ChatSummary[] = [];
-    for (const info of conversationInfos) {
-      const latestMessage = summaryMap.get(info.conversationId);
-      if (!latestMessage) continue;
-      const notReadCount = unreadMap.get(info.conversationId) ?? 0;
-
-      const isSendByBe = latestMessage.sender_id === userId;
-      const partnerUserId = isSendByBe
-        ? this.getPartnerId(info.conversationId, userId)
-        : latestMessage.sender_id;
-      const partnerUser = await this.userService.user({ id: partnerUserId });
-      if (!partnerUser)
-        throw new Error(`can't find user, userId = ${partnerUserId}`);
-
-      summaries.push({
-        conversationId: info.conversationId,
-        unreadCount: notReadCount,
-        isOnline: this.findSocketsByUserId(partnerUser.id).length > 0,
-        partner: {
-          id: partnerUser.id,
-          name: partnerUser.name,
-          image: partnerUser.image,
-        },
-        lastMessage: {
-          ...latestMessage,
-          created_at: latestMessage.created_at.toISOString(),
-        },
-      });
-    }
-
-    // 由於 conversationInfos 是已經排序好的，所以 summaries 也是排序好的
+    const summaries = Promise.all(promiseSummaries);
+    // 由於 conversationOrderInfos 是已經排序好的，所以 summaries 也是排序好的
     return summaries;
   }
 
@@ -276,6 +218,12 @@ export class ChatService {
     targetSocketIds.forEach((socketId) => {
       this.server.to(socketId).emit(EmitEvent.USER_READED, { readerId });
     });
+    const conversationId = this.getConversationId(readerId, targetUserId);
+    this.redis
+      .hSet('base.conversation.info:conversationId', conversationId, {
+        [`unreadCount:${readerId}`]: 0,
+      })
+      .catch(() => {});
   }
   //
   // private
@@ -307,5 +255,127 @@ export class ChatService {
       );
     }
     return partnerId;
+  }
+  private async getOrderConversationIds(
+    userId: string,
+    cursor?: { lastMessageTime: Date; conversationId: string },
+    limit: number = 20,
+  ): Promise<{ conversationId: string; lastMessageTime: Date }[]> {
+    if (!cursor) {
+      const conversationInfos = await this.redis.zRangeWithScores(
+        'chat.order:userId',
+        userId,
+        '+inf',
+        '-inf',
+        {
+          REV: true,
+          LIMIT: { count: limit, offset: 0 },
+          BY: 'SCORE',
+        },
+      );
+      if (conversationInfos.length)
+        return conversationInfos.map((i) => ({
+          conversationId: i.value,
+          lastMessageTime: new Date(i.score),
+        }));
+    }
+
+    const startPattern = `${userId}\\_%`;
+    const endPattern = `%\\_${userId}`;
+    // 1. 定義基礎查詢
+    let query = Prisma.sql`
+      SELECT
+        conversation_id as "conversationId",
+        MAX(created_at) AS "lastMessageTime"
+      FROM
+        messages
+       WHERE
+        conversation_id LIKE ${startPattern}
+        OR conversation_id LIKE ${endPattern}
+      GROUP BY
+        conversation_id
+    `;
+
+    // 2. 安全地加入 HAVING 條件和游標參數
+    if (cursor) {
+      // 🔴 使用 Prisma.sql 傳遞游標參數，確保安全
+      const havingCondition = Prisma.sql`
+        HAVING
+          MAX(created_at) < ${cursor.lastMessageTime}
+          OR
+          (
+            MAX(created_at) = ${cursor.lastMessageTime}
+            AND conversation_id > ${cursor.conversationId}
+          )
+      `;
+      // 將 HAVING 條件附加到主查詢
+      query = Prisma.sql`${query} ${havingCondition}`;
+    }
+
+    // 3. 安全地加入 ORDER BY 和 LIMIT
+    query = Prisma.sql`
+      ${query}
+      ORDER BY
+        MAX(created_at) DESC,
+        "conversationId" ASC
+      LIMIT ${limit}
+    `;
+    // 4. 執行查詢 (Prisma 會在內部安全地合併所有參數)
+    const conversationInfos =
+      await this.prisma.$queryRaw<
+        { conversationId: string; lastMessageTime: Date }[]
+      >(query);
+    this.redis
+      .zadd(
+        'chat.order:userId',
+        userId,
+        conversationInfos.map((i) => ({
+          score: i.lastMessageTime.getTime(),
+          value: i.conversationId,
+        })),
+      )
+      .catch(() => {});
+    return conversationInfos;
+  }
+  private async getLastMessageAndUnReadCount(
+    userId: string,
+    conversationId: string,
+  ): Promise<{ message: Message; unreadCount: number }> {
+    const unReadKey: `unreadCount:${any}` = `unreadCount:${userId}`;
+    const { lastMessage, [unReadKey]: count } = (await this.redis.hMGet(
+      'base.conversation.info:conversationId',
+      conversationId,
+      ['lastMessage', unReadKey],
+    )) as {
+      [x: `unreadCount:${any}`]: number | null | undefined;
+      lastMessage: LastMessage | null | undefined;
+    };
+    if (lastMessage && (count || count === 0)) {
+      return { message: lastMessage, unreadCount: count };
+    }
+    const message = await this.prisma.message.findFirstOrThrow({
+      where: { conversation_id: conversationId },
+      orderBy: { created_at: 'desc' },
+    });
+    const unreadCount = await this.prisma.message.count({
+      where: {
+        conversation_id: conversationId,
+        sender_id: { not: userId },
+        status: { not: 'READ' },
+      },
+    });
+    this.redis
+      .hSet('base.conversation.info:conversationId', conversationId, {
+        lastMessage: {
+          ...message,
+          created_at: message.created_at.toISOString(),
+        },
+        [unReadKey]: unreadCount,
+      } as any)
+      .catch(() => {});
+    return {
+      message: { ...message, created_at: message.created_at.toISOString() },
+      unreadCount: unreadCount,
+    };
   }
 }

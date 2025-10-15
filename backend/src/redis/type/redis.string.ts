@@ -5,7 +5,7 @@ export interface VerificationToken {
   tokenHash: string;
 }
 
-export interface RedisKeyMap {
+export interface RedisStringKeyMap {
   'email.verify:identifer': VerificationToken; //identifer
   'password.reset:identifer': VerificationToken; //identifer
   'change.email:identifer': VerificationToken; //identifer
@@ -13,4 +13,4 @@ export interface RedisKeyMap {
   'refresh:tokenHash': UserId;
 }
 
-export type KeyPrefix = keyof RedisKeyMap;
+export type StringKeyPrefix = keyof RedisStringKeyMap;

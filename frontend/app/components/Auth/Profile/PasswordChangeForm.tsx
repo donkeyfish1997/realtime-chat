@@ -28,7 +28,10 @@ const PasswordChangeForm = () => {
   const handleSendResetPassword = async () => {
     console.log(123);
     try {
-      await authControllerRequestPasswordReset({ email: user?.email ?? "" });
+      await authControllerRequestPasswordReset(
+        { email: user?.email ?? "" },
+        { isPublic: true }
+      );
       notify("(dev) code: aa112233");
       setStep(STEPS.RESET_PASSWORD);
     } catch (error) {
@@ -41,11 +44,14 @@ const PasswordChangeForm = () => {
       return;
     }
     try {
-      await authControllerResetPassword({
-        identifier: user?.email ?? "",
-        token,
-        newPassword,
-      });
+      await authControllerResetPassword(
+        {
+          identifier: user?.email ?? "",
+          token,
+          newPassword,
+        },
+        { isPublic: true }
+      );
       notify("reset password success.");
       setStep(STEPS.SUCCESS);
     } catch (error) {
