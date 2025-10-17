@@ -89,7 +89,7 @@ export default function MessageBox({
               {markDateDividers([...messages].reverse(), new Date()).map(
                 (message) => {
                   return (
-                    <>
+                    <Box key={message.id}>
                       {message.isDateDivider && (
                         <Box sx={{ textAlign: "center", my: 2 }}>
                           <Typography variant="caption" color="text.secondary">
@@ -98,7 +98,6 @@ export default function MessageBox({
                         </Box>
                       )}
                       <MessageBubble
-                        key={message.id}
                         isReDireact={
                           message.sender_id === user?.id ? true : false
                         }
@@ -110,7 +109,7 @@ export default function MessageBox({
                         messageInfo={message}
                         showTime={message.shouldShowTime}
                       />
-                    </>
+                    </Box>
                   );
                 }
               )}

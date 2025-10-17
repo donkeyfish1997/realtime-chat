@@ -1,6 +1,7 @@
 import {
   chatControllerGetChatSummaries,
   chatControllerGetHistoricalMessages,
+  chatControllerSendPrivateMessage,
   chatControllerMarkConversationAsRead,
 } from "api/chat";
 import type {
@@ -159,16 +160,8 @@ export const useChatInfo = () => {
     if (!partnerId) {
       throw "handleSendMessage error, can not find currentUser";
     }
-    socketRef.current?.emit(
-      "sendPrivateMessage",
-      {
-        targetUserId: partnerId,
-        message: content,
-      },
+    chatControllerSendPrivateMessage(partnerId, { message: content }).then(
       async (info) => {
-        if ("errorMessage" in info) {
-          throw info.errorMessage;
-        }
         if (chatInfos.find((chatInfo) => chatInfo.partner.id === partnerId)) {
           chatInfoDipatch({
             type: "addExcistPartnerMessages",

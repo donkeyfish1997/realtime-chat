@@ -1,10 +1,10 @@
 import { JwtService } from '@nestjs/jwt';
 import {
-  ConnectedSocket,
-  MessageBody,
+  // ConnectedSocket,
+  // MessageBody,
   OnGatewayConnection,
   OnGatewayInit,
-  SubscribeMessage,
+  // SubscribeMessage,
   WebSocketGateway,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
@@ -22,7 +22,7 @@ export type AckResponse<E extends keyof ClientToServerEvents> = Parameters<
   NonNullable<AckCallbackType<E>>
 >[0];
 
-type SendMessageResponse = AckResponse<'sendPrivateMessage'>;
+// type SendMessageResponse = AckResponse<'sendPrivateMessage'>;
 
 @WebSocketGateway()
 export class ChatGateway
@@ -33,36 +33,36 @@ export class ChatGateway
     private chatService: ChatService,
   ) {}
 
-  @SubscribeMessage('sendPrivateMessage')
-  async handleEvent(
-    @MessageBody() data: { targetUserId: string; message: string },
-    @ConnectedSocket() client: Socket,
-  ): Promise<SendMessageResponse> {
-    const sender = client.user;
-    if (!sender) {
-      return { errorMessage: 'Authentication required.' };
-    }
-    const message = await this.chatService.sendPrivateMessage(
-      sender.id,
-      data.targetUserId,
-      data.message,
-    );
+  // @SubscribeMessage('sendPrivateMessage')
+  // async handleEvent(
+  //   @MessageBody() data: { targetUserId: string; message: string },
+  //   @ConnectedSocket() client: Socket,
+  // ): Promise<SendMessageResponse> {
+  //   const sender = client.user;
+  //   if (!sender) {
+  //     return { errorMessage: 'Authentication required.' };
+  //   }
+  //   const message = await this.chatService.sendPrivateMessage(
+  //     sender.id,
+  //     data.targetUserId,
+  //     data.message,
+  //   );
 
-    return { ...message, created_at: message.created_at.toISOString() };
-  }
+  //   return { ...message, created_at: message.created_at.toISOString() };
+  // }
   /**
    * 處理客戶端通知伺服器已讀取訊息的事件。
    */
-  @SubscribeMessage('markAsRead')
-  async handleMarkAsRead(
-    @MessageBody() data: { targetUserId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    const reader = client.user;
-    if (!reader) return;
+  // @SubscribeMessage('markAsRead')
+  // async handleMarkAsRead(
+  //   @MessageBody() data: { targetUserId: string },
+  //   @ConnectedSocket() client: Socket,
+  // ) {
+  //   const reader = client.user;
+  //   if (!reader) return;
 
-    await this.chatService.markMessagesAsRead(reader.id, data.targetUserId);
-  }
+  //   await this.chatService.markMessagesAsRead(reader.id, data.targetUserId);
+  // }
   //////
   //////
   //////

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { type Request } from 'express';
 import {
@@ -8,6 +8,9 @@ import {
   GetHistoricalMessagesParamDto,
   GetHistoricalMessagesQueryDto,
   MarkConversationAsReadParamDto,
+  SendPrivateMessageDto,
+  SendPrivateMessageParamDto,
+  SendPrivateMessageReturnDto,
 } from './dto/chat.dto';
 import { ZodResponse } from 'nestjs-zod';
 
@@ -48,6 +51,21 @@ export class ChatController {
     return messages;
   }
 
+  @Post('message/:targetUserId')
+  @ZodResponse({ type: SendPrivateMessageReturnDto })
+  async sendPrivateMessage(
+    @Req() req: Request,
+    @Param() { targetUserId }: SendPrivateMessageParamDto,
+    @Body() body: SendPrivateMessageDto,
+  ) {
+    const message = await this.chatService.sendPrivateMessage(
+      req.user?.id as string,
+      targetUserId,
+      body.message,
+    );
+
+    return { ...message, created_at: message.created_at.toISOString() };
+  }
   @Post('read/:targetUserId')
   async markConversationAsRead(
     @Req() req: Request,

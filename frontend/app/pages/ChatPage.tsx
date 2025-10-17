@@ -4,6 +4,7 @@ import MessageBox from "~/components/Chat/MessageBox";
 import { useChatInfo } from "~/components/Chat/useChatInfo";
 import SearchBlock from "~/components/Chat/SearchBlock";
 import { useAuth } from "~/context/AuthContext";
+import { useEffect } from "react";
 
 export default function ChatPage() {
   const {

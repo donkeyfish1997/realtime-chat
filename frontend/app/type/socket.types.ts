@@ -21,11 +21,11 @@ export interface ServerToClientEvents {
 
 // 2. 定義客戶端發送給伺服器的事件 (Client -> Server)
 export interface ClientToServerEvents {
-  sendPrivateMessage: (
-    payload: { targetUserId: string; message: string },
-    // 這裡可以選擇性地加入 ack 回調函數的型別
-    callback?: (response: Message | { errorMessage: string }) => void
-  ) => void;
-
-  markAsRead: (payload: { targetUserId: string }) => void;
+  noEvent: () => void;
+  // sendPrivateMessage: (
+  //   payload: { targetUserId: string; message: string },
+  //   // 這裡可以選擇性地加入 ack 回調函數的型別
+  //   callback?: (response: Message | { errorMessage: string }) => void,
+  // ) => void;
+  // markAsRead: (payload: { targetUserId: string }) => void;
 }

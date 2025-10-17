@@ -63,3 +63,10 @@ export class GetHistoricalMessagesDto extends createZodDto(
 export class MarkConversationAsReadParamDto extends createZodDto(
   z.object({ targetUserId: z.string() }),
 ) {}
+export class SendPrivateMessageParamDto extends createZodDto(
+  z.object({ targetUserId: z.string() }),
+) {}
+export class SendPrivateMessageDto extends createZodDto(
+  z.object({ message: z.string() }),
+) {}
+export class SendPrivateMessageReturnDto extends createZodDto(message) {}
