@@ -1,5 +1,5 @@
 // 匯入 Express 模組（這是關鍵步驟）
-import { JwtUserPayload } from './JwtUserPayload';
+import { JwtUserPayload } from '../types copy/JwtUserPayload';
 
 // 擴充 Express 的 Request 介面
 // 這樣你的 Request 物件就會知道它有一個 'user' 屬性

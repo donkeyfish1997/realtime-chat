@@ -17,12 +17,12 @@ if (!RABBITMQ_USER || !RABBITMQ_PASSWORD)
           queue: 'message',
           queueOptions: {
             durable: false,
-            autoDelete: true,
           },
         },
       },
     ]),
   ],
   providers: [MessageService],
+  exports: [MessageService],
 })
 export class MessageModule {}

@@ -23,13 +23,6 @@ const chatSummary = z.object({
   lastMessage: message,
 });
 //
-export enum EmitEvent {
-  MESSAGE_SEND = 'message_send',
-  MESSAGE_ERROR = 'message_error',
-  MESSAGE_READ = 'message_read',
-  RECEIVE_PRIVATE_MESSAGE = 'receive_private_message',
-  USER_READED = 'user_readed',
-}
 
 export class GetChatSummariesParamDto extends createZodDto(
   z.object({

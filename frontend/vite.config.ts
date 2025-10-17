@@ -22,7 +22,7 @@ export default defineConfig({
         },
       },
       "/socket.io": {
-        target: "http://chat_backend:3000",
+        target: "http://chat_websocket:3000",
         changeOrigin: true, // 改變 origin header
         ws: true, // 支援 WebSocket 升級
         //

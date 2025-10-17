@@ -23,6 +23,7 @@ services:
     build: ./chat-websocket
     container_name: chat_websocket
     environment:
+      JWT_SECRET: ${JWT_SECRET}
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
     volumes:
