@@ -6,10 +6,27 @@ services:
       - "3000:3000" 
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
       JWT_SECRET: ${JWT_SECRET}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
     volumes:
       - ./backend:/usr/src/app
+    depends_on:
+      - chat_websocket
+      - mysql
+      - redis
+      - rabbitmq
+
+  chat_websocket:
+    build: ./chat-websocket
+    container_name: chat_websocket
+    environment:
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+    volumes:
+      - ./chat-websocket:/usr/src/app
     depends_on:
       - mysql
       - redis
