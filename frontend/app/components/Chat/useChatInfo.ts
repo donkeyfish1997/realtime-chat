@@ -193,10 +193,12 @@ export const useChatInfo = () => {
 
     const historicalMessages = await chatControllerGetHistoricalMessages(
       userId,
-      {
-        cursorLastTime:
-          partnerInfo.messages[partnerInfo.messages.length - 1].created_at,
-      }
+      partnerInfo.messages.length
+        ? {
+            cursorLastTime:
+              partnerInfo.messages[partnerInfo.messages.length - 1].created_at,
+          }
+        : undefined
     );
     historicalMessages.length &&
       chatInfoDipatch({

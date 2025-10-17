@@ -27,9 +27,6 @@ export default function SearchBlock({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const handleClose = () => {
-    setOpen(false);
-  };
 
   return (
     <Autocomplete
@@ -40,7 +37,7 @@ export default function SearchBlock({
         setOpen(true);
         onSearchUsers(query);
       }}
-      onClose={handleClose}
+      onClose={() => setOpen(false)}
       isOptionEqualToValue={(option, value) => option.name === value.name}
       getOptionLabel={(option) => option.name}
       options={options}
@@ -50,7 +47,10 @@ export default function SearchBlock({
         <ListItem
           {...props}
           key={option.id}
-          onClick={() => onSectedUser(option.id)}
+          onClick={() => {
+            setOpen(false);
+            onSectedUser(option.id);
+          }}
         >
           {/* 2. 放置頭像 */}
           <ListItemAvatar>
