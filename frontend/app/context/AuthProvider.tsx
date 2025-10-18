@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { AuthContext, type AuthContextType } from "./AuthContext";
 import type { LoginResponseDtoOutputUser } from "api/models";
 import { useNavigate } from "react-router";

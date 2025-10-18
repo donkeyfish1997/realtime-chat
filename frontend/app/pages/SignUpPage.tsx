@@ -1,4 +1,4 @@
-import type { Route } from "./+types/SignUpPage";
+// import type { Route } from "./+types/SignUpPage";
 import { TextField, Box, Button, FormLabel, FormControl } from "@mui/material";
 import Typography from "@mui/material/Typography";
 import { useRef, useState } from "react";

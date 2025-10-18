@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import {
   AppBar,
   Toolbar,
@@ -14,7 +14,6 @@ import {
 // 確保 Link 可以在這裡被識別為元件
 import { Link, useNavigate } from "react-router";
 import LogoutIcon from "@mui/icons-material/Logout";
-import HomeIcon from "@mui/icons-material/Home";
 import ChatIcon from "@mui/icons-material/Chat";
 import { useAuth } from "../context/AuthContext";
 
@@ -29,7 +28,7 @@ function AuthStatusDisplay() {
   const open = Boolean(anchorEl);
 
   // 定義事件處理器的類型
-  const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
+  const handleMenu = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
 

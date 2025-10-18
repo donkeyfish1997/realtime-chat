@@ -1,11 +1,10 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { MessageStatus } from '@prisma/client';
 
 const message = z.object({
   id: z.string(),
   content: z.string(),
-  status: z.enum(MessageStatus),
+  status: z.enum(['SENT', 'DELIVERED', 'READ']),
   sender_id: z.string(),
   created_at: z.string(),
   conversation_id: z.string(),

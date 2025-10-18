@@ -2,7 +2,7 @@ import {
   authControllerRequestPasswordReset,
   authControllerResetPassword,
 } from "api/auth";
-import type { Route } from "./+types/ForgetPasswordPage";
+// import type { Route } from "./+types/ForgetPasswordPage";
 import {
   Box,
   Button,

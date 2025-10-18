@@ -14,7 +14,9 @@ export class MessageService implements OnModuleInit, OnModuleDestroy {
     this.client.emit(type, payload);
   }
   async onModuleInit() {
-    await this.client.connect();
+    await this.client.connect().catch((e) => {
+      console.error(`connect rabbidMQ error`, e);
+    });
   }
   async onModuleDestroy() {
     await this.client.close();

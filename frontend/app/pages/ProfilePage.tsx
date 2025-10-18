@@ -1,13 +1,5 @@
-import React, { useState } from "react";
-import {
-  Container,
-  Paper,
-  Typography,
-  Tabs,
-  Tab,
-  Box,
-  Divider,
-} from "@mui/material";
+import { useState } from "react";
+import { Paper, Typography, Tabs, Tab, Box, Divider } from "@mui/material";
 import { useAuth } from "~/context/AuthContext";
 import BasicInfoForm from "~/components/Auth/Profile/BasicInfoForm";
 import PasswordChangeForm from "~/components/Auth/Profile/PasswordChangeForm";

@@ -1,6 +1,8 @@
 services:
   backend:
-    build: ./backend
+    build: 
+      context: ./backend
+      dockerfile: dev.Dockerfile
     container_name: chat_backend
     ports:
       - "3000:3000" 
@@ -12,7 +14,7 @@ services:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
     volumes:
-      - ./backend:/usr/src/app
+      - ./backend: /app
     depends_on:
       - chat_websocket
       - mysql
@@ -20,14 +22,16 @@ services:
       - rabbitmq
 
   chat_websocket:
-    build: ./chat-websocket
+    build: 
+      context: ./chat-websocket
+      dockerfile: dev.Dockerfile
     container_name: chat_websocket
     environment:
       JWT_SECRET: ${JWT_SECRET}
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
     volumes:
-      - ./chat-websocket:/usr/src/app
+      - ./chat-websocket:/app
     depends_on:
       - mysql
       - redis
@@ -35,7 +39,7 @@ services:
   frontend:
     build: 
       context: ./frontend
-      dockerfile: dev.Dockerfile # 👈 指定使用 dev.dockerfile
+      dockerfile: dev.Dockerfile
     container_name: chat_frontend
     volumes:
       - ./frontend:/app

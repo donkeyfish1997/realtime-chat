@@ -1,10 +1,9 @@
-import { Avatar, Divider, lighten, Stack, Typography } from "@mui/material";
+import { Divider, lighten, Stack } from "@mui/material";
 import UserList from "~/components/Chat/UserList";
 import MessageBox from "~/components/Chat/MessageBox";
 import { useChatInfo } from "~/components/Chat/useChatInfo";
 import SearchBlock from "~/components/Chat/SearchBlock";
 import { useAuth } from "~/context/AuthContext";
-import { useEffect } from "react";
 
 export default function ChatPage() {
   const {

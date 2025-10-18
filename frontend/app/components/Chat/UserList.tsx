@@ -1,6 +1,5 @@
 import { Stack, Typography, Avatar, Badge } from "@mui/material";
 import { getRendomAvatorUrl } from "~/utils/getRendomAvatorUrl";
-import type { ChatSummaryOutputDtoOutput } from "api/models";
 import type { ChatInfo } from "./useChatInfo";
 
 export default function UserList({

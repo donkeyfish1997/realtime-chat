@@ -20,13 +20,18 @@ init();
 export function meta() {
   return [
     { charset: "utf-8" },
-
     { title: "real time chat" },
+    ,
     { name: "description", content: "Welcome to real time chat!" },
   ];
 }
 
 export const links: Route.LinksFunction = () => [
+  {
+    rel: "icon",
+    type: "image/png",
+    href: "/icon.png", // 這是圖示檔案的公開路徑
+  },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
     rel: "preconnect",

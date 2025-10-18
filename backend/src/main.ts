@@ -30,6 +30,8 @@ async function bootstrap() {
 
   SwaggerModule.setup('api', app, cleanupOpenApiDoc(openApiDoc));
   app.use(cookieParser());
+  console.log('process.env.PORT: ', process.env.PORT);
   await app.listen(process.env.PORT ?? 3000);
+  console.log('app url', await app.getUrl());
 }
 bootstrap();

@@ -1,6 +1,4 @@
 import { Avatar, Box, lighten, Stack, Typography } from "@mui/material";
-import type { GetHistoricalMessagesDtoOutput } from "api/models";
-import { getRendomAvatorUrl } from "~/utils/getRendomAvatorUrl";
 import type { messageWithDateDivider } from "./utils/markDateDividers";
 
 export default function MessageBubble({
